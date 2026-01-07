@@ -64,6 +64,7 @@ export function Login() {
                   placeholder="tucorreo@sena.edu.co"
                   className="pl-10"
                   value={email}
+                  autoComplete="current-password"
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
@@ -78,6 +79,7 @@ export function Login() {
                   id="password"
                   type="password"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="pl-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
