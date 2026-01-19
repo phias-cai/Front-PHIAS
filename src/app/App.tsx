@@ -12,6 +12,7 @@ import { Environments } from "./components/Environments";
 import { Results } from "./components/Results";
 import { Users } from "./components/Users";
 import { Footer } from "./components/Footer";
+import { Horarios } from "./components/Horarios";
 
 function AppContent() {
   const [activeView, setActiveView] = useState("home");
@@ -22,7 +23,7 @@ function AppContent() {
       case "home":
         return <Home onNavigate={setActiveView} />;
       case "calendar":
-        return <ScheduleCalendar />;
+        return <Horarios />;
       case "instructors":
         return <Instructors />;
       case "fichas":
