@@ -1,116 +1,25 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import { Button } from "./ui/button";
+import { useState, useEffect } from 'react';
 import { 
   Calendar, 
-  BookOpen, 
   Users, 
-  Award, 
-  Target, 
-  FileText, 
-  Building2,
-  TrendingUp,
+  BookOpen, 
+  MapPin, 
   Clock,
-  ArrowRight
-} from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+  ArrowRight,
+  Activity,
+  Award,
+  Zap
+} from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
-const statsData = [
-  { 
-    title: "Instructores", 
-    value: "48", 
-    change: "+12%", 
-    icon: Users, 
-    color: "#39A900" 
-  },
-  { 
-    title: "Fichas Activas", 
-    value: "24", 
-    change: "+8%", 
-    icon: BookOpen, 
-    color: "#00304D" 
-  },
-  { 
-    title: "Programas", 
-    value: "16", 
-    change: "+3%", 
-    icon: Award, 
-    color: "#007832" 
-  },
-  { 
-    title: "Horarios Hoy", 
-    value: "32", 
-    change: "+24%", 
-    icon: Calendar, 
-    color: "#71277A" 
-  },
-];
-
-interface QuickAccessCard {
-  title: string;
-  description: string;
-  icon: any;
-  color: string;
-  action: string;
-  bgColor: string;
+interface Stats {
+  totalFichas: number;
+  totalInstructores: number;
+  totalAmbientes: number;
+  horariosActivos: number;
+  programasActivos: number;
 }
-
-const quickAccessCards: QuickAccessCard[] = [
-  {
-    title: "Calendario",
-    description: "Visualiza y gestiona los horarios programados",
-    icon: Calendar,
-    color: "#39A900",
-    bgColor: "#39A90010",
-    action: "calendar"
-  },
-  {
-    title: "Fichas",
-    description: "Administra las fichas de formación activas",
-    icon: BookOpen,
-    color: "#00304D",
-    bgColor: "#00304D10",
-    action: "fichas"
-  },
-  {
-    title: "Instructores",
-    description: "Gestiona el personal docente del centro",
-    icon: Users,
-    color: "#007832",
-    bgColor: "#00783210",
-    action: "instructors"
-  },
-  {
-    title: "Programas",
-    description: "Consulta los programas de formación",
-    icon: Award,
-    color: "#71277A",
-    bgColor: "#71277A10",
-    action: "programs"
-  },
-  {
-    title: "Competencias",
-    description: "Visualiza competencias y resultados de aprendizaje",
-    icon: Target,
-    color: "#FDC300",
-    bgColor: "#FDC30010",
-    action: "competencies"
-  },
-  {
-    title: "Ambientes",
-    description: "Administra los ambientes de formación",
-    icon: Building2,
-    color: "#50E5F9",
-    bgColor: "#50E5F910",
-    action: "environments"
-  },
-];
-
-const recentActivity = [
-  { action: "Nuevo horario creado", ficha: "Ficha 2559874", time: "Hace 5 minutos", color: "#39A900" },
-  { action: "Instructor asignado", instructor: "María González", time: "Hace 15 minutos", color: "#00304D" },
-  { action: "Competencia actualizada", programa: "Desarrollo de Software", time: "Hace 1 hora", color: "#007832" },
-  { action: "Ambiente reservado", ambiente: "Ambiente 201", time: "Hace 2 horas", color: "#71277A" },
-];
 
 interface HomeProps {
   onNavigate: (view: string) => void;
@@ -118,121 +27,273 @@ interface HomeProps {
 
 export function Home({ onNavigate }: HomeProps) {
   const { user } = useAuth();
+  const [stats, setStats] = useState<Stats>({
+    totalFichas: 0,
+    totalInstructores: 0,
+    totalAmbientes: 0,
+    horariosActivos: 0,
+    programasActivos: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardStats();
+  }, []);
+
+  const loadDashboardStats = async () => {
+    try {
+      const [fichas, instructores, ambientes, horarios, programas] = await Promise.all([
+        supabase.from('fichas').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('rol', 'instructor'),
+        supabase.from('ambientes').select('id', { count: 'exact', head: true }),
+        supabase.from('horarios').select('id', { count: 'exact', head: true }),
+        supabase.from('programas').select('id', { count: 'exact', head: true })
+      ]);
+
+      setStats({
+        totalFichas: fichas.count || 0,
+        totalInstructores: instructores.count || 0,
+        totalAmbientes: ambientes.count || 0,
+        horariosActivos: horarios.count || 0,
+        programasActivos: programas.count || 0
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const quickActions = [
+    {
+      title: 'Gestionar Horarios',
+      description: 'Crear y organizar horarios de formación',
+      icon: Calendar,
+      color: 'from-[#39A900] to-[#2d8000]',
+      link: 'horarios',
+      stat: stats.horariosActivos,
+      statLabel: 'activos'
+    },
+    {
+      title: 'Instructores',
+      description: 'Administrar equipo docente',
+      icon: Users,
+      color: 'from-[#00304D] to-[#001a2d]',
+      link: 'instructors',
+      stat: stats.totalInstructores,
+      statLabel: 'registrados'
+    },
+    {
+      title: 'Fichas de Formación',
+      description: 'Gestión de grupos de aprendices',
+      icon: BookOpen,
+      color: 'from-[#71277A] to-[#4d1a52]',
+      link: 'fichas',
+      stat: stats.totalFichas,
+      statLabel: 'activas'
+    },
+    {
+      title: 'Ambientes',
+      description: 'Espacios físicos del centro',
+      icon: MapPin,
+      color: 'from-[#007832] to-[#005020]',
+      link: 'environments',
+      stat: stats.totalAmbientes,
+      statLabel: 'disponibles'
+    }
+  ];
+
+  const metrics = [
+    { 
+      label: 'Programas Activos', 
+      value: stats.programasActivos, 
+      icon: Award,
+      trend: '+12%',
+      trendUp: true
+    },
+    { 
+      label: 'Tasa de Ocupación', 
+      value: '87%', 
+      icon: Activity,
+      trend: '+5%',
+      trendUp: true
+    },
+    { 
+      label: 'Horas Programadas', 
+      value: '1,240', 
+      icon: Clock,
+      trend: '+8%',
+      trendUp: true
+    },
+    { 
+      label: 'Eficiencia', 
+      value: '94%', 
+      icon: Zap,
+      trend: '+3%',
+      trendUp: true
+    }
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold text-[#00304D]">
-          Bienvenido, {user?.name}
-        </h1>
-        <p className="text-gray-600 mt-1">
-          {user?.role === 'admin' && 'Panel de administración del sistema'}
-          {user?.role === 'coordinador' && 'Panel de coordinación académica'}
-          {user?.role === 'instructor' && 'Panel de consulta de horarios'}
-          {user?.role === 'asistente' && 'Panel de consulta del sistema'}
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 -m-8">
+      {/* Hero Section con Imagen del CAI */}
+      <div className="relative h-[380px] overflow-hidden">
+        {/* Imagen de fondo */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url('/cai.jpg')`,
+            filter: 'brightness(0.85)'
+          }}
+        />
+        
+        {/* Overlay con degradado SENA institucional - MUY transparente */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#00304D]/30 via-[#007832]/20 to-[#39A900]/30" />
+        
+        {/* Contenido Hero */}
+        <div className="relative h-full flex items-center justify-center px-4">
+          <div className="max-w-6xl mx-auto text-center">
+            {/* Título Principal - Sin logo SENA, sin "Sistema de Gestión" */}
+            <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 leading-tight drop-shadow-lg">
+              <span className="block bg-gradient-to-r from-[#39A900] to-[#50E5F9] bg-clip-text text-transparent drop-shadow-lg">
+                PHIAS
+              </span>
+            </h1>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsData.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index} className="border-l-4" style={{ borderLeftColor: stat.color }}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  {stat.title}
-                </CardTitle>
-                <Icon className="h-5 w-5" style={{ color: stat.color }} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold" style={{ color: stat.color }}>
-                  {stat.value}
-                </div>
-                <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
-                  <TrendingUp className="h-3 w-3" />
-                  {stat.change} vs mes anterior
+            {/* Acrónimo explicado */}
+            <div className="mb-4 inline-block">
+              <div className="bg-white/90 backdrop-blur-sm rounded-lg px-6 py-3 border border-white/40 shadow-xl">
+                <p className="text-sm md:text-base text-[#00304D] font-semibold">
+                  <span className="text-[#39A900] font-bold">P</span>rogramador de{' '}
+                  <span className="text-[#39A900] font-bold">H</span>orarios,{' '}
+                  <span className="text-[#39A900] font-bold">I</span>nstructores,{' '}
+                  <span className="text-[#39A900] font-bold">A</span>mbientes -{' '}
+                  <span className="text-[#39A900] font-bold">S</span>ENA
                 </p>
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+            </div>
+            
+            <p className="text-lg md:text-xl text-white font-semibold max-w-3xl mx-auto drop-shadow-lg">
+              Centro de Automatización Industrial - Manizales
+            </p>
+          </div>
+        </div>
+
+        {/* Decorative wave */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path 
+              d="M0,64L60,69.3C120,75,240,85,360,80C480,75,600,53,720,48C840,43,960,53,1080,58.7C1200,64,1320,64,1380,64L1440,64L1440,120L1380,120C1320,120,1200,120,1080,120C960,120,840,120,720,120C600,120,480,120,360,120C240,120,120,120,60,120L0,120Z" 
+              fill="rgb(249, 250, 251)"
+            />
+          </svg>
+        </div>
       </div>
 
-      {/* Quick Access Section */}
-      <div>
-        <h2 className="text-xl font-bold text-[#00304D] mb-4">Acceso Rápido</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quickAccessCards.map((card, index) => {
-            const Icon = card.icon;
+      {/* Metrics Dashboard */}
+      <div className="max-w-7xl mx-auto px-4 -mt-16 relative z-10 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {metrics.map((metric, index) => {
+            const Icon = metric.icon;
             return (
-              <Card 
-                key={index} 
-                className="hover:shadow-lg transition-all cursor-pointer group"
-                onClick={() => onNavigate(card.action)}
+              <div
+                key={index}
+                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300
+                         border border-gray-100 hover:scale-105"
               >
-                <CardContent className="p-6">
-                  <div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-                    style={{ backgroundColor: card.bgColor }}
-                  >
-                    <Icon className="h-6 w-6" style={{ color: card.color }} />
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-[#39A900]/10 rounded-xl">
+                    <Icon className="w-6 h-6 text-[#39A900]" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#00304D] mb-2">
-                    {card.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {card.description}
-                  </p>
-                  <Button 
-                    variant="ghost" 
-                    className="p-0 h-auto group-hover:text-[#39A900] transition-colors"
-                    style={{ color: card.color }}
-                  >
-                    Ir al módulo
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
-              </Card>
+                  <span className={`text-sm font-semibold px-2 py-1 rounded-lg ${
+                    metric.trendUp 
+                      ? 'bg-[#39A900]/10 text-[#39A900]' 
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {metric.trend}
+                  </span>
+                </div>
+                <h3 className="text-gray-600 text-sm font-medium mb-1">{metric.label}</h3>
+                <p className="text-3xl font-bold text-[#00304D]">{metric.value}</p>
+              </div>
             );
           })}
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Actividad Reciente</CardTitle>
-              <CardDescription>Últimas acciones en el sistema</CardDescription>
-            </div>
-            <Button variant="outline" size="sm">
-              Ver todo
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-start gap-4 pb-4 border-b last:border-b-0">
-                <div className="w-2 h-2 rounded-full mt-2" style={{ backgroundColor: activity.color }} />
-                <div className="flex-1">
-                  <p className="font-medium text-[#00304D]">{activity.action}</p>
-                  <p className="text-sm text-gray-500">
-                    {activity.ficha || activity.instructor || activity.programa || activity.ambiente}
-                  </p>
+      {/* Quick Actions Grid */}
+      <div className="max-w-7xl mx-auto px-4 pb-16">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-[#00304D] mb-4">Acceso Rápido</h2>
+          <p className="text-gray-600 text-lg">Gestiona las funcionalidades principales del sistema</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {quickActions.map((action, index) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={index}
+                onClick={() => onNavigate(action.link)}
+                className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl 
+                         transition-all duration-300 overflow-hidden hover:-translate-y-2 text-left w-full"
+              >
+                {/* Gradient Background on Hover */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${action.color} opacity-0 
+                              group-hover:opacity-5 transition-opacity duration-300`} />
+                
+                {/* Icon */}
+                <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${action.color} 
+                              shadow-lg group-hover:scale-110 transition-transform duration-300 mb-6`}>
+                  <Icon className="w-8 h-8 text-white" />
                 </div>
-                <div className="flex items-center gap-1 text-sm text-gray-400">
-                  <Clock className="h-3 w-3" />
-                  {activity.time}
+
+                {/* Content */}
+                <h3 className="text-xl font-bold text-[#00304D] mb-3 group-hover:text-[#39A900] transition-colors">
+                  {action.title}
+                </h3>
+                <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                  {action.description}
+                </p>
+
+                {/* Stats Badge */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div>
+                    <span className="text-2xl font-bold text-[#00304D]">{action.stat}</span>
+                    <span className="text-sm text-gray-500 ml-2">{action.statLabel}</span>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-[#39A900] 
+                                       group-hover:translate-x-1 transition-all duration-300" />
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Botones de Acción - Al final */}
+      <div className="max-w-7xl mx-auto px-4 pb-16">
+        <div className="flex flex-wrap gap-4 justify-center">
+          <button 
+            onClick={() => onNavigate('horarios')}
+            className="group px-8 py-4 bg-[#39A900] text-white rounded-xl font-bold text-lg
+                     hover:bg-[#2d8000] transition-all duration-300 flex items-center gap-2
+                     shadow-2xl hover:shadow-3xl hover:scale-105"
+          >
+            Ver Horarios
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
+          
+          <button 
+            onClick={() => onNavigate('calendar')}
+            className="px-8 py-4 bg-[#00304D] text-white rounded-xl font-bold text-lg
+                     hover:bg-[#001a2d] transition-all duration-300
+                     border-2 border-[#00304D] shadow-2xl hover:shadow-3xl hover:scale-105"
+          >
+            Ver Calendario
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

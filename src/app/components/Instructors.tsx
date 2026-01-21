@@ -20,7 +20,11 @@ interface InstructorData {
   activeClasses: number;
 }
 
-export function Instructors() {
+interface InstructorsProps {
+  onNavigate?: (view: string, data?: any) => void;
+}
+
+export function Instructors({ onNavigate }: InstructorsProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [instructors, setInstructors] = useState<InstructorData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,13 +88,25 @@ export function Instructors() {
     return colors[index];
   };
 
-  // Estadísticas calculadas
+  // EstadÃ­sticas calculadas
   const activeInstructors = instructors.filter(i => i.is_active).length;
   const totalClasses = instructors.reduce((sum, i) => sum + i.activeClasses, 0);
   const uniqueSpecialties = new Set(instructors.map(i => i.area).filter(Boolean)).size;
 
   return (
-    <div className="space-y-6">
+      <div className="min-h-screen relative">
+    {/* Imagen de fondo MUY sutil */}
+    <div 
+      className="fixed inset-0 bg-cover bg-center pointer-events-none"
+      style={{
+        backgroundImage: `url('/cai.jpg')`,
+        filter: 'brightness(1.2)',
+        opacity: '0.1'
+      }}
+    />
+    
+    {/* Contenido */}
+    <div className="relative space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -239,10 +255,10 @@ export function Instructors() {
                           variant="ghost" 
                           size="icon"
                           title="Ver horarios del instructor"
-                          onClick={() => {
-                            // TODO: Navegar a la vista de horarios filtrada por este instructor
-                            console.log('Ver horarios de:', instructor.nombres);
-                          }}
+                          onClick={() => onNavigate?.('horarios', { 
+                            instructorId: instructor.id, 
+                            instructorNombre: instructor.nombres 
+                          })}
                         >
                           <Calendar className="h-4 w-4" />
                         </Button>
@@ -255,6 +271,7 @@ export function Instructors() {
           )}
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }

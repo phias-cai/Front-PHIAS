@@ -1,46 +1,47 @@
-import { SenaLogo } from "./SenaLogo";
-import { MapPin, Phone, Mail } from "lucide-react";
+import { MapPin, Phone, Mail, Heart } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="bg-[#00304D] text-white mt-auto">
-      <div className="container mx-auto px-8 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-          {/* Logo and System Name */}
+    <footer className="bg-gradient-to-r from-[#00304D] via-[#007832] to-[#39A900]">
+      <div className="container mx-auto px-8 py-8">
+        {/* Contenido principal en una sola fila */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          
+          {/* Info del Centro */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#39A900] flex items-center justify-center flex-shrink-0">
-              <SenaLogo className="w-10 h-10" />
-            </div>
-            <div>
-              <h3 className="font-bold text-lg">PHIAS</h3>
-              <p className="text-xs text-gray-300">Sistema de Horarios</p>
-            </div>
-          </div>
-
-          {/* Center Info */}
-          <div className="text-center">
-            <p className="font-medium mb-1">Centro de Automatización Industrial</p>
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-300">
-              <MapPin className="h-3 w-3" />
-              <span>Manizales, Caldas</span>
+            <div className="flex items-center gap-2 text-white">
+              <MapPin className="h-5 w-5 text-[#50E5F9]" />
+              <div>
+                <p className="font-bold text-sm">Centro de Automatización Industrial</p>
+                <p className="text-xs text-gray-200">Manizales, Caldas</p>
+              </div>
             </div>
           </div>
 
-          {/* Contact Info */}
-          <div className="text-sm text-gray-300 space-y-1 md:text-right">
-            <div className="flex items-center gap-2 md:justify-end">
-              <Phone className="h-3 w-3" />
+          {/* Contacto */}
+          <div className="flex flex-col md:flex-row gap-4 text-sm text-gray-100">
+            <a 
+              href="tel:+576068727272" 
+              className="flex items-center gap-2 hover:text-white transition-colors"
+            >
+              <Phone className="h-4 w-4" />
               <span>(+57) 606 872 7272</span>
-            </div>
-            <div className="flex items-center gap-2 md:justify-end">
-              <Mail className="h-3 w-3" />
+            </a>
+            <a 
+              href="mailto:cai@sena.edu.co" 
+              className="flex items-center gap-2 hover:text-white transition-colors"
+            >
+              <Mail className="h-4 w-4" />
               <span>cai@sena.edu.co</span>
-            </div>
+            </a>
           </div>
-        </div>
 
-        <div className="border-t border-white/10 mt-6 pt-4 text-center text-xs text-gray-400">
-          <p>© {new Date().getFullYear()} SENA - Servicio Nacional de Aprendizaje. Todos los derechos reservados.</p>
+          {/* Copyright */}
+          <div className="text-xs text-gray-200 flex items-center gap-1">
+            <span>Hecho con</span>
+            <Heart className="h-3 w-3 text-red-400 fill-current" />
+            <span>© {new Date().getFullYear()} SENA</span>
+          </div>
         </div>
       </div>
     </footer>

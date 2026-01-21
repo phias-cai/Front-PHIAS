@@ -48,7 +48,15 @@ interface HorarioData {
 type FilterMode = 'ficha' | 'instructor' | 'ambiente';
 type ViewMode = 'calendar' | 'list';
 
-export function Horarios() {
+interface HorariosProps {
+  navigationData?: {
+    fichaId?: string;
+    fichaNumero?: string;
+    instructorId?: string;
+    instructorNombre?: string;
+  } | null;
+}
+export function Horarios({ navigationData }: HorariosProps = {}) {
   const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [horarios, setHorarios] = useState<HorarioData[]>([]);
@@ -85,7 +93,25 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
   useEffect(() => {
     loadHorarios();
   }, [filterMode, selectedFicha, selectedInstructor, selectedAmbiente]);
+  // Detectar navegación desde Fichas
+  // Detectar navegación desde Fichas o Instructors
+  useEffect(() => {
+    if (navigationData?.fichaId) {
+      setFilterMode("ficha");
+      setSelectedFicha(navigationData.fichaId);
+    } else if (navigationData?.instructorId) {
+      setFilterMode("instructor");
+      setSelectedInstructor(navigationData.instructorId);
+    }
+  }, [navigationData]);
 
+  
+  // ✅ AUTO-SELECCIÓN: Si es instructor, seleccionarlo automáticamente en modo instructor
+  useEffect(() => {
+    if (currentUser?.role === 'instructor' && filterMode === 'instructor' && !selectedInstructor) {
+      setSelectedInstructor(currentUser.id);
+    }
+  }, [currentUser, filterMode, selectedInstructor]);
   const loadFilterOptions = async () => {
     try {
       const { data: fichasData } = await supabase
@@ -95,13 +121,25 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
         .order('numero');
       setFichas(fichasData || []);
 
-      const { data: instructoresData } = await supabase
-        .from('profiles')
-        .select('id, nombres')
-        .eq('rol', 'instructor')
-        .eq('is_active', true)
-        .order('nombres');
-      setInstructores(instructoresData || []);
+      // ✅ PERMISOS: Si es instructor, solo mostrar su propio perfil
+      let instructoresData;
+      if (currentUser?.role === 'instructor') {
+        // Instructor solo ve su propio perfil
+        instructoresData = [{
+          id: currentUser.id,
+          nombres: currentUser.name
+        }];
+      } else {
+        // Admin/Coordinador ven todos los instructores
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, nombres')
+          .eq('rol', 'instructor')
+          .eq('is_active', true)
+          .order('nombres');
+        instructoresData = data || [];
+      }
+      setInstructores(instructoresData);
 
       const { data: ambientesData } = await supabase
         .from('ambientes')
@@ -260,7 +298,19 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
   };
 
   return (
-    <div className="space-y-6">
+     <div className="min-h-screen relative">
+    {/* Imagen de fondo MUY sutil */}
+    <div 
+      className="fixed inset-0 bg-cover bg-center pointer-events-none"
+      style={{
+        backgroundImage: `url('/cai.jpg')`,
+        filter: 'brightness(0.8)',
+        opacity: '0.2'
+      }}
+    />
+    
+    {/* Contenido */}
+    <div className="relative space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -386,6 +436,7 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
         fichas={fichas}
         instructores={instructores}
         ambientes={ambientes}
+        userRole={currentUser?.role}
       />
       {/* ⬅️ AGREGAR ESTO AQUÍ */}
       {/* Selector de Mes (Solo para instructor en vista lista) */}
@@ -505,6 +556,8 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
   selectedInstructor={selectedInstructor}
   instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
 />
-    </div>
-  );
+</div>
+  </div>
+
+);
 }

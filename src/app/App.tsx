@@ -16,18 +16,25 @@ import { Horarios } from "./components/Horarios";
 
 function AppContent() {
   const [activeView, setActiveView] = useState("home");
+  const [navigationData, setNavigationData] = useState<any>(null);
   const { isAuthenticated } = useAuth();
+
+  const handleNavigation = (view: string, data?: any) => {
+    setActiveView(view);
+    setNavigationData(data);
+  };
 
   const renderView = () => {
     switch (activeView) {
       case "home":
-        return <Home onNavigate={setActiveView} />;
+        return <Home onNavigate={handleNavigation} />;
       case "calendar":
-        return <Horarios />;
+      case "horarios":
+        return <Horarios navigationData={navigationData} />;
       case "instructors":
-        return <Instructors />;
+        return <Instructors onNavigate={handleNavigation} />;
       case "fichas":
-        return <Fichas />;
+        return <Fichas onNavigate={handleNavigation} />;
       case "programs":
         return <Programs />;
       case "competencies":
@@ -39,7 +46,7 @@ function AppContent() {
       case "users":
         return <Users />;
       default:
-        return <Home onNavigate={setActiveView} />;
+        return <Home onNavigate={handleNavigation} />;
     }
   };
 

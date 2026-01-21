@@ -52,7 +52,11 @@ const jornadas = [
   { value: 'FINES_DE_SEMANA', label: 'Fines de Semana', color: '#007832' },
 ];
 
-export function Fichas() {
+interface FichasProps {
+  onNavigate?: (view: string, data?: any) => void;
+}
+
+export function Fichas({ onNavigate }: FichasProps) {
   const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJornada, setSelectedJornada] = useState("Todos");
@@ -95,7 +99,7 @@ export function Fichas() {
     coordinador_id: '', // ID del instructor seleccionado
   });
 
-  // Cargar fichas con estadísticas
+  // Cargar fichas con estadÃ­sticas
   const fetchFichas = async () => {
     try {
       setLoading(true);
@@ -368,7 +372,19 @@ export function Fichas() {
   const canManageFichas = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-    <div className="space-y-6">
+      <div className="min-h-screen relative">
+    {/* Imagen de fondo MUY sutil */}
+    <div 
+      className="fixed inset-0 bg-cover bg-center pointer-events-none"
+      style={{
+        backgroundImage: `url('/cai.jpg')`,
+        filter: 'brightness(1.2)',
+        opacity: '0.1'
+      }}
+    />
+    
+    {/* Contenido */}
+    <div className="relative space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -377,15 +393,30 @@ export function Fichas() {
         </div>
         
         {canManageFichas && (
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={(open) => {
+            setCreateDialogOpen(open);
+            if (!open) {
+              // Limpiar formulario al cerrar
+              setCreateFormData({
+                numero: '',
+                programa_id: '',
+                jornada: 'DIURNA',
+                fecha_inicio: '',
+                fecha_fin: '',
+                cantidad_aprendices: '',
+                coordinador_id: '',
+              });
+              setResult(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-[#39A900] hover:bg-[#2d8000]">
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Ficha
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Crear Nueva Ficha</DialogTitle>
                 <DialogDescription>
                   Ingresa los datos de la nueva ficha de formación
@@ -393,13 +424,14 @@ export function Fichas() {
               </DialogHeader>
 
               {result && (
-                <Alert variant={result.success ? 'default' : 'destructive'}>
+                <Alert variant={result.success ? 'default' : 'destructive'} className="flex-shrink-0">
                   {result.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                   <AlertDescription>{result.message}</AlertDescription>
                 </Alert>
               )}
 
-              <form onSubmit={handleCreateFicha} className="space-y-4">
+              <div className="flex-1 overflow-y-auto px-1">
+                <form onSubmit={handleCreateFicha} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="numero">Número de Ficha <span className="text-red-500">*</span></Label>
@@ -528,6 +560,7 @@ export function Fichas() {
                   )}
                 </Button>
               </form>
+              </div>
             </DialogContent>
           </Dialog>
         )}
@@ -568,7 +601,7 @@ export function Fichas() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar por número de ficha o programa..."
+                placeholder="Buscar por nÃºmero de ficha o programa..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -680,7 +713,10 @@ export function Fichas() {
                         </Button>
                       </>
                     )}
-                    <Button className="bg-[#39A900] hover:bg-[#2d8000]">
+                    <Button 
+                      className="bg-[#39A900] hover:bg-[#2d8000]"
+                      onClick={() => onNavigate?.('horarios', { fichaId: ficha.id, fichaNumero: ficha.numero })}
+                    >
                       Ver Horarios
                     </Button>
                   </div>
@@ -692,7 +728,13 @@ export function Fichas() {
       )}
 
       {/* Modal Editar */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          setSelectedFicha(null);
+          setResult(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Ficha</DialogTitle>
@@ -877,6 +919,7 @@ export function Fichas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
     </div>
   );
 }

@@ -62,7 +62,6 @@ export function Programs() {
     nombre: '',
     tipo: 'TECNOLOGO',
     duracion_meses: '',
-    nivel: '',
     version: '',
     descripcion: '',
   });
@@ -78,7 +77,7 @@ export function Programs() {
     descripcion: '',
   });
 
-  // Cargar programas con estadísticas
+  // Cargar programas con estadÃ­sticas
   const fetchProgramas = async () => {
     try {
       setLoading(true);
@@ -121,7 +120,6 @@ export function Programs() {
         p_nombre: createFormData.nombre,
         p_tipo: createFormData.tipo,
         p_duracion_meses: duracion,
-        p_nivel: createFormData.nivel || null,
         p_version: createFormData.version || null,
         p_descripcion: createFormData.descripcion || null,
       });
@@ -134,7 +132,7 @@ export function Programs() {
         setResult({ success: true, message: `Programa ${createFormData.nombre} creado exitosamente` });
         setCreateFormData({
           numero: '', nombre: '', tipo: 'TECNOLOGO', duracion_meses: '',
-          nivel: '', version: '', descripcion: '',
+          version: '', descripcion: '',
         });
         fetchProgramas();
         setTimeout(() => {
@@ -292,7 +290,19 @@ export function Programs() {
   const canManageProgramas = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-    <div className="space-y-6">
+      <div className="min-h-screen relative">
+    {/* Imagen de fondo MUY sutil */}
+    <div 
+      className="fixed inset-0 bg-cover bg-center pointer-events-none"
+      style={{
+        backgroundImage: `url('/cai.jpg')`,
+        filter: 'brightness(1.2)',
+        opacity: '0.1'
+      }}
+    />
+    
+    {/* Contenido */}
+    <div className="relative space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -301,15 +311,29 @@ export function Programs() {
         </div>
         
         {canManageProgramas && (
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={(open) => {
+            setCreateDialogOpen(open);
+            if (!open) {
+              // Limpiar formulario al cerrar
+              setCreateFormData({
+                numero: '',
+                nombre: '',
+                tipo: 'TECNOLOGO',
+                duracion_meses: '',
+                version: '',
+                descripcion: '',
+              });
+              setResult(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-[#39A900] hover:bg-[#2d8000]">
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Programa
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Crear Nuevo Programa</DialogTitle>
                 <DialogDescription>
                   Ingresa los datos del nuevo programa de formación
@@ -317,13 +341,14 @@ export function Programs() {
               </DialogHeader>
 
               {result && (
-                <Alert variant={result.success ? 'default' : 'destructive'}>
+                <Alert variant={result.success ? 'default' : 'destructive'} className="flex-shrink-0">
                   {result.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                   <AlertDescription>{result.message}</AlertDescription>
                 </Alert>
               )}
 
-              <form onSubmit={handleCreatePrograma} className="space-y-4">
+              <div className="flex-1 overflow-y-auto px-1">
+                <form onSubmit={handleCreatePrograma} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="numero">Número SENA <span className="text-red-500">*</span></Label>
@@ -367,7 +392,7 @@ export function Programs() {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="duracion">Duración (meses) <span className="text-red-500">*</span></Label>
                     <Input
@@ -378,16 +403,6 @@ export function Programs() {
                       value={createFormData.duracion_meses}
                       onChange={(e) => setCreateFormData({ ...createFormData, duracion_meses: e.target.value })}
                       required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="nivel">Nivel</Label>
-                    <Input
-                      id="nivel"
-                      placeholder="Nivel 4"
-                      value={createFormData.nivel}
-                      onChange={(e) => setCreateFormData({ ...createFormData, nivel: e.target.value })}
                     />
                   </div>
 
@@ -431,6 +446,7 @@ export function Programs() {
                   )}
                 </Button>
               </form>
+              </div>
             </DialogContent>
           </Dialog>
         )}
@@ -471,7 +487,7 @@ export function Programs() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar por nombre o código de programa..."
+                placeholder="Buscar por nombre o cÃ³digo de programa..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -512,7 +528,7 @@ export function Programs() {
                     <CardTitle className="text-lg text-[#00304D] mb-2">{program.nombre}</CardTitle>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="text-xs">
-                        Código: {program.numero}
+                        CÃ³digo: {program.numero}
                       </Badge>
                       <Badge className="text-xs" style={{ backgroundColor: getTipoColor(program.tipo) }}>
                         {getTipoLabel(program.tipo)}
@@ -593,7 +609,13 @@ export function Programs() {
       )}
 
       {/* Modal Editar */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          setSelectedPrograma(null);
+          setResult(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Programa</DialogTitle>
@@ -754,5 +776,6 @@ export function Programs() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+    </div>
+  )
 }

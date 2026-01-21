@@ -351,7 +351,19 @@ export function Users() {
   const canManageUsers = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-    <div className="space-y-6">
+     <div className="min-h-screen relative">
+    {/* Imagen de fondo MUY sutil */}
+    <div 
+      className="fixed inset-0 bg-cover bg-center pointer-events-none"
+      style={{
+        backgroundImage: `url('/cai.jpg')`,
+        filter: 'brightness(1.2)',
+        opacity: '0.15'
+      }}
+    />
+    
+    {/* Contenido */}
+    <div className="relative space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -906,6 +918,8 @@ export function Users() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
+  </div>
+  </div>
+
+);
 }

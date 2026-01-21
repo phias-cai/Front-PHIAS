@@ -60,7 +60,6 @@ export function Environments() {
     codigo: '',
     capacidad: '',
     tipo: 'AULA',
-    descripcion: '',
     ubicacion: '',
   });
 
@@ -118,7 +117,6 @@ export function Environments() {
         p_codigo: createFormData.codigo.toUpperCase(),
         p_capacidad: capacidad,
         p_tipo: createFormData.tipo,
-        p_descripcion: createFormData.descripcion || null,
         p_ubicacion: createFormData.ubicacion || null,
       });
 
@@ -130,7 +128,7 @@ export function Environments() {
         setResult({ success: true, message: `Ambiente ${createFormData.nombre} creado exitosamente` });
         setCreateFormData({
           nombre: '', codigo: '', capacidad: '', tipo: 'AULA',
-          descripcion: '', ubicacion: '',
+          ubicacion: '',
         });
         fetchAmbientes();
         setTimeout(() => {
@@ -282,7 +280,19 @@ export function Environments() {
   const canManageAmbientes = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-    <div className="space-y-6">
+      <div className="min-h-screen relative">
+    {/* Imagen de fondo MUY sutil */}
+    <div 
+      className="fixed inset-0 bg-cover bg-center pointer-events-none"
+      style={{
+        backgroundImage: `url('/cai.jpg')`,
+        filter: 'brightness(1.2)',
+        opacity: '0.1'
+      }}
+    />
+    
+    {/* Contenido */}
+    <div className="relative space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -291,7 +301,20 @@ export function Environments() {
         </div>
         
         {canManageAmbientes && (
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={(open) => {
+            setCreateDialogOpen(open);
+            if (!open) {
+              // Limpiar formulario y resultados al cerrar
+              setCreateFormData({
+                nombre: '',
+                codigo: '',
+                capacidad: '',
+                tipo: 'AULA',
+                ubicacion: '',
+              });
+              setResult(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-[#39A900] hover:bg-[#2d8000]">
                 <Plus className="h-4 w-4 mr-2" />
@@ -379,17 +402,6 @@ export function Environments() {
                     placeholder="Edificio A - Piso 2"
                     value={createFormData.ubicacion}
                     onChange={(e) => setCreateFormData({ ...createFormData, ubicacion: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="descripcion">Descripción</Label>
-                  <Textarea
-                    id="descripcion"
-                    placeholder="Aula estándar con proyector..."
-                    value={createFormData.descripcion}
-                    onChange={(e) => setCreateFormData({ ...createFormData, descripcion: e.target.value })}
-                    rows={3}
                   />
                 </div>
 
@@ -574,7 +586,14 @@ export function Environments() {
       </Card>
 
       {/* Modal Editar */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          // Limpiar al cerrar
+          setSelectedAmbiente(null);
+          setResult(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Ambiente</DialogTitle>
@@ -736,6 +755,7 @@ export function Environments() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
     </div>
   );
 }

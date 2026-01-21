@@ -16,4 +16,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/app/*"]
+    }
+  }
+
 })

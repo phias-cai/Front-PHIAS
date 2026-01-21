@@ -7,11 +7,10 @@ import {
   Target, 
   FileText,
   User,
-  Settings,
   LogOut,
-  Building2
+  Building2,
+  Lock
 } from "lucide-react";
-import { SenaLogo } from "./SenaLogo";
 import { Button } from "./ui/button";
 import { useAuth, UserRole } from "../contexts/AuthContext";
 
@@ -43,16 +42,23 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   const filteredMenuItems = menuItems.filter(item => canAccessItem(item.roles as UserRole[]));
 
   return (
-    <div className="w-64 min-h-screen bg-[#00304D] text-white flex flex-col">
-      {/* Logo Section */}
+    <div className="w-64 min-h-screen bg-gradient-to-b from-[#00304D] via-[#003d5c] to-[#00304D] text-white flex flex-col shadow-2xl">
+      {/* Logo Section - Modernizado con logo SENA */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-lg bg-[#39A900] flex items-center justify-center">
-            <Calendar className="h-6 w-6 text-white" />
+          {/* Logo SENA PNG */}
+          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-lg">
+            <img 
+              src="/sena.png" 
+              alt="SENA" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Phias</h1>
-            <p className="text-xs text-gray-300">Sistema de Horarios</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+              PHIAS
+            </h1>
+            <p className="text-xs text-[#39A900] font-semibold">CAI Manizales</p>
           </div>
         </div>
       </div>
@@ -67,10 +73,10 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
             <button
               key={item.id}
               onClick={() => onViewChange(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? "bg-[#39A900] text-white"
-                  : "text-gray-300 hover:bg-white/10 hover:text-white"
+                  ? "bg-[#39A900] text-white shadow-lg shadow-[#39A900]/30 scale-105"
+                  : "text-gray-300 hover:bg-white/5 hover:text-white hover:translate-x-1"
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -80,40 +86,45 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
         })}
       </nav>
 
-      {/* User Section */}
+      {/* User Section - Sin Settings */}
       <div className="p-4 border-t border-white/10">
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 mb-2">
-          <div className="w-10 h-10 rounded-full bg-[#39A900] flex items-center justify-center">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 mb-3 border border-white/10">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#39A900] to-[#2d8000] flex items-center justify-center shadow-lg">
             <User className="h-5 w-5 text-white" />
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">{user?.name}</p>
-            <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate">{user?.name}</p>
+            <p className="text-xs text-[#39A900] capitalize font-medium">{user?.role}</p>
           </div>
         </div>
         
-        <div className="flex gap-2">
+        {/* Botones de usuario */}
+        <div className="space-y-2">
           <Button
             variant="ghost"
-            size="icon"
-            className="flex-1 text-gray-300 hover:text-white hover:bg-white/10"
+            className="w-full justify-start text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200"
+            onClick={() => onViewChange('change-password')}
           >
-            <Settings className="h-4 w-4" />
+            <Lock className="h-4 w-4 mr-2" />
+            Cambiar Contraseña
           </Button>
+          
           <Button
             variant="ghost"
-            size="icon"
-            className="flex-1 text-gray-300 hover:text-white hover:bg-white/10"
+            className="w-full justify-start text-gray-300 hover:text-white hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 rounded-xl transition-all duration-200"
             onClick={logout}
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4 mr-2" />
+            Cerrar Sesión
           </Button>
         </div>
       </div>
 
-      {/* SENA Branding */}
+      {/* Footer minimalista */}
       <div className="p-4 border-t border-white/10">
-        <SenaLogo className="w-32 h-auto mx-auto opacity-75" />
+        <p className="text-center text-xs text-gray-400">
+          SENA © {new Date().getFullYear()}
+        </p>
       </div>
     </div>
   );

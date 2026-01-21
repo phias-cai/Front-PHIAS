@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Plus, Target, Loader2, CheckCircle, XCircle, Edit, UserX, UserCheck, BookOpen, Download, Upload } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
-// Declaración de XLSX global
+// DeclaraciÃ³n de XLSX global
 declare global {
   interface Window {
     XLSX: any;
@@ -187,7 +187,7 @@ export function Results() {
   }, [selectedCompetencia]);
 
   // ============================================
-  // CREAR RESULTADOS (MÚLTIPLES)
+  // CREAR RESULTADOS (MÃšLTIPLES)
   // ============================================
   const addResultadoRow = () => {
     setCreateFormData({
@@ -232,7 +232,7 @@ export function Results() {
             ? parseInt(resultado.duracion_horas) 
             : null,
           p_descripcion: null,
-          p_orden: i + 1, // Orden automático basado en la posición
+          p_orden: i + 1, // Orden automÃ¡tico basado en la posiciÃ³n
         });
 
         if (error) {
@@ -266,7 +266,7 @@ export function Results() {
           setResult(null);
         }, 2000);
       } else {
-        throw new Error('No se pudo crear ningún resultado');
+        throw new Error('No se pudo crear ningÃºn resultado');
       }
     } catch (error: any) {
       setResult({ success: false, message: error.message || 'Error al crear resultados' });
@@ -276,19 +276,19 @@ export function Results() {
   };
 
   // ============================================
-  // IMPORTACIÓN MASIVA DESDE EXCEL
+  // IMPORTACIÃ“N MASIVA DESDE EXCEL
   // ============================================
   const downloadResultadosTemplate = () => {
     // Crear datos de ejemplo para la plantilla
     const templateData = [
       ['Nombre del Resultado', 'Duración (horas)'],
-      ['Identificar las necesidades del cliente para proponer un sistema de información', '40'],
-      ['Diseñar el sistema de acuerdo con los requisitos del cliente', '60'],
-      ['Desarrollar el sistema que cumpla con los requisitos de la solución informática', '80'],
+      ['Identificar las necesidades del cliente para proponer un sistema de informaciÃ³n', '40'],
+      ['DiseÃ±ar el sistema de acuerdo con los requisitos del cliente', '60'],
+      ['Desarrollar el sistema que cumpla con los requisitos de la soluciÃ³n informÃ¡tica', '80'],
       ['', ''],
     ];
 
-    // Crear hoja de cálculo
+    // Crear hoja de cÃ¡lculo
     const ws = window.XLSX.utils.aoa_to_sheet(templateData);
     const wb = window.XLSX.utils.book_new();
     window.XLSX.utils.book_append_sheet(wb, ws, 'Resultados');
@@ -369,7 +369,7 @@ export function Results() {
           setResult(null);
         }, 2000);
       } else {
-        throw new Error('No se pudo importar ningún resultado. Verifica el formato del archivo.');
+        throw new Error('No se pudo importar ningÃºn resultado. Verifica el formato del archivo.');
       }
     } catch (error: any) {
       setResult({ success: false, message: error.message || 'Error al importar archivo Excel' });
@@ -494,7 +494,16 @@ export function Results() {
   const canManageResultados = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-    <div className="space-y-6">
+      <div className="min-h-screen relative">
+    {/* Imagen de fondo MUY sutil */}
+    <div 
+      className="fixed inset-0 bg-cover bg-center pointer-events-none"
+      style={{
+        backgroundImage: `url('/cai.jpg')`,
+        filter: 'brightness(1.2)',
+        opacity: '0.1'
+      }}
+    />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -503,15 +512,26 @@ export function Results() {
         </div>
         
         {canManageResultados && (
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={(open) => {
+            setCreateDialogOpen(open);
+            if (!open) {
+              // Limpiar formulario al cerrar
+              setCreateFormData({
+                programa_id: '',
+                competencia_id: '',
+                resultados: [{ nombre: '', duracion_horas: '' }],
+              });
+              setResult(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-[#39A900] hover:bg-[#2d8000]">
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Resultado
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Crear Nuevo Resultado de Aprendizaje</DialogTitle>
                 <DialogDescription>
                   Ingresa los datos del nuevo RAP
@@ -519,13 +539,14 @@ export function Results() {
               </DialogHeader>
 
               {result && (
-                <Alert variant={result.success ? 'default' : 'destructive'}>
+                <Alert variant={result.success ? 'default' : 'destructive'} className="flex-shrink-0">
                   {result.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                   <AlertDescription>{result.message}</AlertDescription>
                 </Alert>
               )}
 
-              <form onSubmit={handleCreateResultados} className="space-y-4">
+              <div className="flex-1 overflow-y-auto px-1">
+                <form onSubmit={handleCreateResultados} className="space-y-4">
                 {/* Importación masiva */}
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
@@ -684,6 +705,7 @@ export function Results() {
                   )}
                 </Button>
               </form>
+              </div>
             </DialogContent>
           </Dialog>
         )}
@@ -823,7 +845,13 @@ export function Results() {
       )}
 
       {/* Modal Editar */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          setSelectedResultado(null);
+          setResult(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Resultado de Aprendizaje</DialogTitle>
@@ -873,7 +901,7 @@ export function Results() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-descripcion">Descripción</Label>
+              <Label htmlFor="edit-descripcion">DescripciÃ³n</Label>
               <Textarea
                 id="edit-descripcion"
                 value={editFormData.descripcion}
@@ -910,13 +938,13 @@ export function Results() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {selectedResultado?.is_active ? '¿Desactivar resultado?' : '¿Activar resultado?'}
+              {selectedResultado?.is_active ? 'Â¿Desactivar resultado?' : 'Â¿Activar resultado?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedResultado?.is_active ? (
-                <>¿Estás seguro de desactivar este resultado de aprendizaje?</>
+                <>Â¿EstÃ¡s seguro de desactivar este resultado de aprendizaje?</>
               ) : (
-                <>¿Estás seguro de activar este resultado de aprendizaje?</>
+                <>Â¿EstÃ¡s seguro de activar este resultado de aprendizaje?</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -937,5 +965,6 @@ export function Results() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    
   );
 }
