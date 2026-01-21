@@ -37,160 +37,189 @@ export function ViewHorarioModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <DialogTitle className="text-lg">Detalles del Horario</DialogTitle>
+          <div className="flex items-center gap-3">
+            <DialogTitle className="text-2xl">Detalles del Horario</DialogTitle>
             <Badge 
               className="text-xs" 
               style={{ backgroundColor: getTipoColor(horario.tipo) }}
             >
               {horario.tipo}
             </Badge>
-            {!horario.is_active && (
-              <Badge variant="secondary" className="text-xs">Inactivo</Badge>
-            )}
           </div>
+          <DialogDescription>
+            Información completa del horario seleccionado
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 text-sm">
-          {/* Horario - Compacto en grid */}
-          <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg">
-            <div>
-              <p className="text-xs text-gray-600">Día</p>
-              <p className="font-medium">{horario.dia_semana}</p>
+        <div className="space-y-6">
+          {/* Horario */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Horario
+            </h3>
+            <div className="grid grid-cols-2 gap-4 pl-6">
+              <div>
+                <p className="text-sm text-gray-600">Día</p>
+                <p className="font-medium">{horario.dia_semana}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Horario</p>
+                <p className="font-medium">{horario.hora_inicio} - {horario.hora_fin}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Horas semanales</p>
+                <p className="font-medium">{horario.horas_semanales}h</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Estado</p>
+                <Badge variant={horario.is_active ? "default" : "secondary"}>
+                  {horario.is_active ? "Activo" : "Inactivo"}
+                </Badge>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-600">Horario</p>
-              <p className="font-medium">{horario.hora_inicio} - {horario.hora_fin}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-600">Horas semanales</p>
-              <p className="font-medium">{horario.horas_semanales}h</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-600">Vigencia</p>
-              <p className="font-medium text-xs">
-                {new Date(horario.fecha_inicio).toLocaleDateString('es-CO', {day: '2-digit', month: '2-digit'})} - {new Date(horario.fecha_fin).toLocaleDateString('es-CO', {day: '2-digit', month: '2-digit', year: 'numeric'})}
-              </p>
+          </div>
+
+          {/* Vigencia */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Vigencia
+            </h3>
+            <div className="grid grid-cols-2 gap-4 pl-6">
+              <div>
+                <p className="text-sm text-gray-600">Fecha inicio</p>
+                <p className="font-medium">
+                  {new Date(horario.fecha_inicio).toLocaleDateString('es-CO')}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Fecha fin</p>
+                <p className="font-medium">
+                  {new Date(horario.fecha_fin).toLocaleDateString('es-CO')}
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Instructor */}
           {horario.instructor_nombre && (
-            <div className="flex items-center gap-2 p-2 bg-blue-50 rounded">
-              <Users className="h-4 w-4 text-blue-600 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-gray-600">Instructor</p>
-                <p className="font-medium">{horario.instructor_nombre}</p>
-              </div>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Instructor
+              </h3>
+              <p className="pl-6">{horario.instructor_nombre}</p>
             </div>
           )}
 
           {/* Ambiente */}
           {horario.ambiente_nombre && (
-            <div className="flex items-center gap-2 p-2 bg-green-50 rounded">
-              <Home className="h-4 w-4 text-green-600 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-gray-600">Ambiente</p>
-                <p className="font-medium">
-                  {horario.ambiente_codigo && `${horario.ambiente_codigo} - `}
-                  {horario.ambiente_nombre}
-                </p>
-              </div>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Ambiente
+              </h3>
+              <p className="pl-6">
+                {horario.ambiente_codigo && `${horario.ambiente_codigo} - `}
+                {horario.ambiente_nombre}
+              </p>
             </div>
           )}
 
           {/* Detalles según tipo */}
           {horario.tipo === 'CLASE' && (
             <>
-              {/* Apoyo/Materia - PRIMERO */}
-              {horario.apoyo && (
-                <div className="flex items-start gap-2 p-2 bg-purple-50 rounded">
-                  <FileText className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Apoyo (Materia/Tema)</p>
-                    <p className="font-medium">{horario.apoyo}</p>
-                  </div>
-                </div>
-              )}
-
               {horario.ficha_numero && (
-                <div className="flex items-center gap-2 p-2 bg-orange-50 rounded">
-                  <BookOpen className="h-4 w-4 text-orange-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-gray-600">Ficha</p>
-                    <p className="font-medium">Ficha {horario.ficha_numero}</p>
-                    {horario.programa_nombre && (
-                      <p className="text-xs text-gray-600 mt-0.5">{horario.programa_nombre}</p>
-                    )}
-                  </div>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Ficha
+                  </h3>
+                  <p className="pl-6">Ficha {horario.ficha_numero}</p>
+                  {horario.programa_nombre && (
+                    <p className="pl-6 text-sm text-gray-600">{horario.programa_nombre}</p>
+                  )}
                 </div>
               )}
 
               {horario.competencia_nombre && (
-                <div className="flex items-start gap-2 p-2 bg-indigo-50 rounded">
-                  <Target className="h-4 w-4 text-indigo-600 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Competencia</p>
-                    <p className="font-medium text-sm leading-tight">{horario.competencia_nombre}</p>
-                  </div>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Competencia
+                  </h3>
+                  <p className="pl-6">{horario.competencia_nombre}</p>
                 </div>
               )}
 
               {horario.resultado_nombre && horario.resultado_nombre !== 'N/A' && (
-                <div className="flex items-start gap-2 p-2 bg-teal-50 rounded">
-                  <Target className="h-4 w-4 text-teal-600 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Resultado de Aprendizaje</p>
-                    <p className="text-sm leading-tight">{horario.resultado_nombre}</p>
-                  </div>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Resultado de Aprendizaje
+                  </h3>
+                  <p className="pl-6 text-sm">{horario.resultado_nombre}</p>
+                </div>
+              )}
+
+              {horario.apoyo && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Apoyo (Materia/Tema)
+                  </h3>
+                  <p className="pl-6">{horario.apoyo}</p>
                 </div>
               )}
             </>
           )}
 
           {horario.tipo === 'APOYO' && horario.apoyo_tipo && (
-            <div className="flex items-start gap-2 p-2 bg-purple-50 rounded">
-              <FileText className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-600">Tipo de Apoyo</p>
-                <p className="font-medium">{horario.apoyo_tipo}</p>
-              </div>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Tipo de Apoyo
+              </h3>
+              <p className="pl-6">{horario.apoyo_tipo}</p>
             </div>
           )}
 
           {horario.tipo === 'RESERVA' && horario.observacion_reserva && (
-            <div className="flex items-start gap-2 p-2 bg-purple-50 rounded">
-              <FileText className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-600">Motivo de Reserva</p>
-                <p className="font-medium">{horario.observacion_reserva}</p>
-              </div>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Motivo de Reserva
+              </h3>
+              <p className="pl-6">{horario.observacion_reserva}</p>
             </div>
           )}
 
           {/* Observaciones */}
           {horario.observaciones && (
-            <div className="p-2 bg-gray-50 rounded">
-              <p className="text-xs text-gray-600 mb-1">Observaciones</p>
-              <p className="text-sm text-gray-700">{horario.observaciones}</p>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Observaciones
+              </h3>
+              <p className="pl-6 text-sm text-gray-700">{horario.observaciones}</p>
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex gap-2 sm:gap-2">
-          <Button variant="outline" onClick={onClose} size="sm">
+        <DialogFooter className="flex gap-2">
+          <Button variant="outline" onClick={onClose}>
             Cerrar
           </Button>
           {canManage && (
             <Button 
               className="bg-[#39A900] hover:bg-[#2d8000]"
               onClick={handleEdit}
-              size="sm"
             >
-              <Edit className="h-3 w-3 mr-1" />
-              Editar
+              <Edit className="h-4 w-4 mr-2" />
+              Editar Horario
             </Button>
           )}
         </DialogFooter>

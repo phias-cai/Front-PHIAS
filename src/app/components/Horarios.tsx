@@ -1,8 +1,9 @@
+// src/components/Horarios.tsx
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Loader2, Plus, Download, Calendar, List } from "lucide-react";
+import { Loader2, Plus, Download, Calendar as CalendarIcon, List } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { HorariosFilters } from "./horarios/HorariosFilters";
 import { CreateHorarioModal } from "./horarios/CreateHorarioModal";
@@ -22,7 +23,7 @@ interface HorarioData {
   fecha_fin: string;
   horas_semanales: number;
   is_active: boolean;
-  apoyo?: string;
+  apoyo?: string;  // ⬅️ NUEVO
   
   instructor_id: string;
   instructor_nombre: string;
@@ -60,7 +61,7 @@ export function Horarios() {
   
   // Modales
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);  // ⬅️ NUEVO
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [selectedHorario, setSelectedHorario] = useState<HorarioData | null>(null);
@@ -184,6 +185,7 @@ export function Horarios() {
 
   const canManageHorarios = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
+  // ⬅️ NUEVO: Abre modal de visualización
   const handleViewHorario = (horario: HorarioData) => {
     setSelectedHorario(horario);
     setViewModalOpen(true);
@@ -214,7 +216,7 @@ export function Horarios() {
               onClick={() => setViewMode('calendar')}
               className={viewMode === 'calendar' ? 'bg-[#39A900] hover:bg-[#2d8000]' : ''}
             >
-              <Calendar className="h-4 w-4 mr-2" />
+              <CalendarIcon className="h-4 w-4 mr-2" />
               Calendario
             </Button>
             <Button
@@ -318,7 +320,7 @@ export function Horarios() {
         <CalendarView 
           horarios={horarios} 
           getTipoColor={getTipoColor}
-          onView={handleViewHorario}
+          onView={handleViewHorario}  // ⬅️ CAMBIADO: ahora abre modal de visualización
         />
       ) : (
         <div className="space-y-6">
@@ -329,7 +331,7 @@ export function Horarios() {
                 <h2 className="text-xl font-bold text-[#00304D] mb-3">
                   {grupo.dia}
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-fr gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                   {grupo.horarios.map(horario => (
                     <HorarioCard
                       key={horario.id}
@@ -338,7 +340,7 @@ export function Horarios() {
                       getTipoColor={getTipoColor}
                       canManage={canManageHorarios}
                       onUpdate={loadHorarios}
-                      onView={handleViewHorario}
+                      onView={handleViewHorario}  // ⬅️ NUEVO
                       onEdit={handleEditHorario}
                     />
                   ))}
@@ -358,6 +360,7 @@ export function Horarios() {
         ambientes={ambientes}
       />
 
+      {/* ⬅️ NUEVO: Modal de visualización */}
       <ViewHorarioModal
         open={viewModalOpen}
         onClose={() => setViewModalOpen(false)}
