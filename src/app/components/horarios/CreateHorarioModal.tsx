@@ -294,8 +294,8 @@ export function CreateHorarioModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Crear Nuevo Horario</DialogTitle>
           <DialogDescription>
             Selecciona el tipo de horario y completa la información
@@ -303,59 +303,66 @@ export function CreateHorarioModal({
         </DialogHeader>
 
         {result && (
-          <Alert variant={result.success ? 'default' : 'destructive'}>
+          <Alert variant={result.success ? 'default' : 'destructive'} className="flex-shrink-0">
             {result.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
             <AlertDescription>{result.message}</AlertDescription>
           </Alert>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="clase">
-              <BookOpen className="h-4 w-4 mr-2" />
-              Clase
-            </TabsTrigger>
-            <TabsTrigger value="apoyo">
-              <Users className="h-4 w-4 mr-2" />
-              Apoyo
-            </TabsTrigger>
-            <TabsTrigger value="reserva">
-              <Home className="h-4 w-4 mr-2" />
-              Reserva
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex-1 overflow-y-auto px-1">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="clase">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Clase
+              </TabsTrigger>
+              <TabsTrigger value="apoyo">
+                <Users className="h-4 w-4 mr-2" />
+                Apoyo
+              </TabsTrigger>
+              <TabsTrigger value="reserva">
+                <Home className="h-4 w-4 mr-2" />
+                Reserva
+              </TabsTrigger>
+            </TabsList>
 
-          {/* TAB CLASE */}
-          <TabsContent value="clase">
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Ficha <span className="text-red-500">*</span></Label>
-                  <Select value={formClase.ficha_id} onValueChange={(v) => setFormClase({...formClase, ficha_id: v})}>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {fichas.map(f => (
-                        <SelectItem key={f.id} value={f.id}>Ficha {f.numero}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* TAB CLASE */}
+            <TabsContent value="clase" className="space-y-4 mt-4">
+              {/* Ficha y Competencia */}
+              <div className="space-y-2">
+                <Label>Ficha <span className="text-red-500">*</span></Label>
+                <Select value={formClase.ficha_id} onValueChange={(v) => setFormClase({...formClase, ficha_id: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar ficha" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fichas.map(f => (
+                      <SelectItem key={f.id} value={f.id}>Ficha {f.numero}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <Label>Competencia <span className="text-red-500">*</span></Label>
-                  <Select 
-                    value={formClase.competencia_id} 
-                    onValueChange={(v) => setFormClase({...formClase, competencia_id: v})}
-                    disabled={!formClase.ficha_id}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {competencias.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.numero} - {c.nombre}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>Competencia <span className="text-red-500">*</span></Label>
+                <Select 
+                  value={formClase.competencia_id} 
+                  onValueChange={(v) => setFormClase({...formClase, competencia_id: v})}
+                  disabled={!formClase.ficha_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar competencia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {competencias.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <div className="max-w-[400px] truncate">
+                          {c.numero} - {c.nombre}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -365,10 +372,16 @@ export function CreateHorarioModal({
                   onValueChange={(v) => setFormClase({...formClase, resultado_id: v})}
                   disabled={!formClase.competencia_id}
                 >
-                  <SelectTrigger><SelectValue placeholder="Seleccionar resultado" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar resultado" />
+                  </SelectTrigger>
                   <SelectContent>
                     {resultados.map(r => (
-                      <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>
+                      <SelectItem key={r.id} value={r.id}>
+                        <div className="max-w-[400px] truncate">
+                          {r.nombre}
+                        </div>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -377,13 +390,14 @@ export function CreateHorarioModal({
               <div className="space-y-2">
                 <Label>Apoyo (Materia/Tema)</Label>
                 <Input 
-                  placeholder="Ej: Desarrollo Web, Bases de Datos, Programación..."
+                  placeholder="Ej: Desarrollo Web, Bases de Datos..."
                   value={formClase.apoyo} 
                   onChange={(e) => setFormClase({...formClase, apoyo: e.target.value})} 
                 />
-                <p className="text-xs text-gray-500">Materia o tema relacionado con el resultado de aprendizaje</p>
+                <p className="text-xs text-gray-500">Materia o tema relacionado</p>
               </div>
 
+              {/* Instructor y Ambiente */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Instructor <span className="text-red-500">*</span></Label>
@@ -410,6 +424,7 @@ export function CreateHorarioModal({
                 </div>
               </div>
 
+              {/* Día y Horas */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Día <span className="text-red-500">*</span></Label>
@@ -434,6 +449,7 @@ export function CreateHorarioModal({
                 </div>
               </div>
 
+              {/* Fechas */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Fecha Inicio <span className="text-red-500">*</span></Label>
@@ -454,12 +470,10 @@ export function CreateHorarioModal({
               <Button onClick={handleSubmitClase} className="w-full bg-[#39A900] hover:bg-[#2d8000]" disabled={loading}>
                 {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando...</> : 'Crear Horario de Clase'}
               </Button>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* TAB APOYO */}
-          <TabsContent value="apoyo">
-            <div className="space-y-4">
+            {/* TAB APOYO */}
+            <TabsContent value="apoyo" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Instructor <span className="text-red-500">*</span></Label>
@@ -539,12 +553,10 @@ export function CreateHorarioModal({
               <Button onClick={handleSubmitApoyo} className="w-full bg-[#00304D] hover:bg-[#001f33]" disabled={loading}>
                 {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando...</> : 'Crear Horario de Apoyo'}
               </Button>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* TAB RESERVA */}
-          <TabsContent value="reserva">
-            <div className="space-y-4">
+            {/* TAB RESERVA */}
+            <TabsContent value="reserva" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Ambiente <span className="text-red-500">*</span></Label>
@@ -620,9 +632,9 @@ export function CreateHorarioModal({
               <Button onClick={handleSubmitReserva} className="w-full bg-[#71277A] hover:bg-[#5a1f62]" disabled={loading}>
                 {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando...</> : 'Crear Reserva de Ambiente'}
               </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );

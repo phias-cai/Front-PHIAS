@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Loader2, Plus, Download, Calendar as CalendarIcon, List } from "lucide-react";
+import { Loader2, Plus, Download, Calendar as CalendarIcon, List, Upload } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { HorariosFilters } from "./horarios/HorariosFilters";
 import { CreateHorarioModal } from "./horarios/CreateHorarioModal";
@@ -12,6 +12,9 @@ import { EditHorarioModal } from "./horarios/EditHorarioModal";
 import { HorarioCard } from "./horarios/HorarioCard";
 import { CalendarView } from "./horarios/CalendarView";
 import { ExportModal } from "./horarios/ExportModal";
+import { UploadMassiveModal } from "./horarios/UploadMassiveModal"; // ⬅️ NUEVO
+import { UploadMassiveInstructorModal } from './horarios/Uploadmassiveinstructormodal'
+import { MonthSelector } from "./horarios/MonthSelector";
 
 interface HorarioData {
   id: string;
@@ -23,7 +26,7 @@ interface HorarioData {
   fecha_fin: string;
   horas_semanales: number;
   is_active: boolean;
-  apoyo?: string;  // ⬅️ NUEVO
+  apoyo?: string;
   
   instructor_id: string;
   instructor_nombre: string;
@@ -49,6 +52,8 @@ export function Horarios() {
   const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [horarios, setHorarios] = useState<HorarioData[]>([]);
+  const [uploadMassiveInstructorModalOpen, setUploadMassiveInstructorModalOpen] = useState(false);
+const [selectedMonth, setSelectedMonth] = useState<string>('');
   
   // Vista
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
@@ -61,15 +66,17 @@ export function Horarios() {
   
   // Modales
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [viewModalOpen, setViewModalOpen] = useState(false);  // ⬅️ NUEVO
+  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [uploadMassiveModalOpen, setUploadMassiveModalOpen] = useState(false); // ⬅️ NUEVO
   const [selectedHorario, setSelectedHorario] = useState<HorarioData | null>(null);
   
   // Opciones para filtros
   const [fichas, setFichas] = useState<any[]>([]);
   const [instructores, setInstructores] = useState<any[]>([]);
   const [ambientes, setAmbientes] = useState<any[]>([]);
+  const [programaNombre, setProgramaNombre] = useState<string>(''); // ⬅️ NUEVO
 
   useEffect(() => {
     loadFilterOptions();
@@ -107,6 +114,37 @@ export function Horarios() {
     }
   };
 
+  // ⬅️ NUEVO: Cargar nombre del programa cuando se selecciona ficha
+  useEffect(() => {
+    if (selectedFicha) {
+      const loadProgramaNombre = async () => {
+        try {
+          const { data: fichaData } = await supabase
+            .from('fichas')
+            .select('programa_id')
+            .eq('id', selectedFicha)
+            .single();
+
+          if (fichaData) {
+            const { data: programaData } = await supabase
+              .from('programas')
+              .select('nombre')
+              .eq('id', fichaData.programa_id)
+              .single();
+
+            setProgramaNombre(programaData?.nombre || '');
+          }
+        } catch (error) {
+          console.error('Error loading programa:', error);
+        }
+      };
+      
+      loadProgramaNombre();
+    } else {
+      setProgramaNombre('');
+    }
+  }, [selectedFicha]);
+
   const loadHorarios = async () => {
     try {
       setLoading(true);
@@ -132,10 +170,14 @@ export function Horarios() {
           .order('hora_inicio');
         
         if (error) throw error;
+        
+        console.log('📊 Horarios cargados (sin filtro):', data?.length);
         setHorarios(data || []);
         setLoading(false);
         return;
       }
+
+      console.log('🔍 Cargando horarios con:', { rpcFunction, rpcParams });
 
       const { data, error } = await supabase.rpc(rpcFunction, rpcParams);
       
@@ -143,18 +185,40 @@ export function Horarios() {
       
       const response = typeof data === 'string' ? JSON.parse(data) : data;
       
+      console.log('📦 Respuesta del RPC:', response);
+
       if (response.success) {
+        let horariosData = [];
+        
         if (filterMode === 'instructor') {
-          setHorarios(response.data.horarios || []);
+          horariosData = response.data.horarios || [];
         } else {
-          setHorarios(response.data || []);
+          horariosData = response.data || [];
         }
+
+        console.log('✅ Horarios procesados:', {
+          total: horariosData.length,
+          filterMode,
+          horarios: horariosData
+        });
+
+        // 🔍 DEBUG: Verificar fechas
+        horariosData.forEach((h: any) => {
+          console.log(`Horario ${h.id}:`, {
+            fecha_inicio: h.fecha_inicio,
+            fecha_fin: h.fecha_fin,
+            fecha_inicio_type: typeof h.fecha_inicio,
+            fecha_fin_type: typeof h.fecha_fin
+          });
+        });
+
+        setHorarios(horariosData);
       } else {
-        console.error('Error:', response.error);
+        console.error('❌ Error en respuesta:', response.error);
         setHorarios([]);
       }
     } catch (error) {
-      console.error('Error loading horarios:', error);
+      console.error('❌ Error loading horarios:', error);
       setHorarios([]);
     } finally {
       setLoading(false);
@@ -185,7 +249,6 @@ export function Horarios() {
 
   const canManageHorarios = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
-  // ⬅️ NUEVO: Abre modal de visualización
   const handleViewHorario = (horario: HorarioData) => {
     setSelectedHorario(horario);
     setViewModalOpen(true);
@@ -229,7 +292,17 @@ export function Horarios() {
               Lista
             </Button>
           </div>
-
+{/*// 3. Botón (en la sección de botones, cuando filterMode === 'instructor')*/}
+{canManageHorarios && filterMode === 'instructor' && selectedInstructor && (
+  <Button 
+    variant="outline"
+    className="border-[#39A900] text-[#39A900] hover:bg-[#39A900] hover:text-white"
+    onClick={() => setUploadMassiveInstructorModalOpen(true)}
+  >
+    <Upload className="h-4 w-4 mr-2" />
+    Carga Masiva
+  </Button>
+)}
           <Button 
             variant="outline"
             onClick={() => setExportModalOpen(true)}
@@ -237,6 +310,18 @@ export function Horarios() {
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
+          
+          {/* Botón de Carga Masiva (solo para ficha) */}
+          {canManageHorarios && filterMode === 'ficha' && selectedFicha && (
+            <Button 
+              variant="outline"
+              className="border-[#39A900] text-[#39A900] hover:bg-[#39A900] hover:text-white"
+              onClick={() => setUploadMassiveModalOpen(true)}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Carga Masiva
+            </Button>
+          )}
           
           {canManageHorarios && (
             <Button 
@@ -302,6 +387,16 @@ export function Horarios() {
         instructores={instructores}
         ambientes={ambientes}
       />
+      {/* ⬅️ AGREGAR ESTO AQUÍ */}
+      {/* Selector de Mes (Solo para instructor en vista lista) */}
+      {filterMode === 'instructor' && selectedInstructor && viewMode === 'list' && (
+        <MonthSelector
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+          horarios={horarios}
+          instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
+        />
+      )}
 
       {/* Contenido según vista */}
       {loading ? (
@@ -320,7 +415,8 @@ export function Horarios() {
         <CalendarView 
           horarios={horarios} 
           getTipoColor={getTipoColor}
-          onView={handleViewHorario}  // ⬅️ CAMBIADO: ahora abre modal de visualización
+          onView={handleViewHorario}
+          filterMode={filterMode}  // ⬅️ AGREGADO: pasar el modo de filtro
         />
       ) : (
         <div className="space-y-6">
@@ -340,7 +436,7 @@ export function Horarios() {
                       getTipoColor={getTipoColor}
                       canManage={canManageHorarios}
                       onUpdate={loadHorarios}
-                      onView={handleViewHorario}  // ⬅️ NUEVO
+                      onView={handleViewHorario}
                       onEdit={handleEditHorario}
                     />
                   ))}
@@ -360,7 +456,6 @@ export function Horarios() {
         ambientes={ambientes}
       />
 
-      {/* ⬅️ NUEVO: Modal de visualización */}
       <ViewHorarioModal
         open={viewModalOpen}
         onClose={() => setViewModalOpen(false)}
@@ -385,7 +480,31 @@ export function Horarios() {
           filterMode === 'instructor' ? selectedInstructor :
           selectedAmbiente
         }
+        selectedName={
+          filterMode === 'ficha' 
+            ? fichas.find(f => f.id === selectedFicha)?.numero || ''
+            : filterMode === 'instructor'
+            ? instructores.find(i => i.id === selectedInstructor)?.nombres || ''
+            : ambientes.find(a => a.id === selectedAmbiente)?.codigo || ''
+        }
       />
+
+      {/* ⬅️ NUEVO: Modal de Carga Masiva */}
+      <UploadMassiveModal
+        open={uploadMassiveModalOpen}
+        onClose={() => setUploadMassiveModalOpen(false)}
+        onSuccess={loadHorarios}
+        selectedFicha={selectedFicha}
+        fichaNumero={fichas.find(f => f.id === selectedFicha)?.numero || ''}
+        programaNombre={programaNombre || ''}
+      />
+        <UploadMassiveInstructorModal
+  open={uploadMassiveInstructorModalOpen}
+  onClose={() => setUploadMassiveInstructorModalOpen(false)}
+  onSuccess={loadHorarios}
+  selectedInstructor={selectedInstructor}
+  instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
+/>
     </div>
   );
 }

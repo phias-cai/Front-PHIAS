@@ -1,4 +1,3 @@
-// src/components/horarios/EditHorarioModal.tsx
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Textarea } from "../ui/textarea";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 interface EditHorarioModalProps {
   open: boolean;
@@ -95,8 +95,8 @@ export function EditHorarioModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4 border-b">
           <DialogTitle>Editar Horario</DialogTitle>
           <DialogDescription>
             Modificar fechas, día y horas del horario
@@ -104,132 +104,158 @@ export function EditHorarioModal({
         </DialogHeader>
 
         {result && (
-          <Alert variant={result.success ? 'default' : 'destructive'}>
+          <Alert variant={result.success ? 'default' : 'destructive'} className="flex-shrink-0">
             {result.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
             <AlertDescription>{result.message}</AlertDescription>
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Info del horario (no editable) */}
-          <div className="p-4 bg-gray-50 rounded-lg space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Tipo:</span>
-              <span className="text-sm text-gray-900">{horario.tipo}</span>
-            </div>
-            
-            {horario.instructor_nombre && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Instructor:</span>
-                <span className="text-sm text-gray-900">{horario.instructor_nombre}</span>
+        {/* CONTENIDO CON SCROLL */}
+        <div className="flex-1 overflow-y-auto px-1 py-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Info del horario (no editable) - Compacta */}
+            <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Tipo:</span>
+                  <span className="ml-2 text-gray-900">{horario.tipo}</span>
+                </div>
+                
+                {horario.instructor_nombre && (
+                  <div className="col-span-2">
+                    <span className="font-medium text-gray-700">Instructor:</span>
+                    <span className="ml-2 text-gray-900">{horario.instructor_nombre}</span>
+                  </div>
+                )}
+                
+                {horario.ficha_numero && horario.ficha_numero !== 'N/A' && (
+                  <div>
+                    <span className="font-medium text-gray-700">Ficha:</span>
+                    <span className="ml-2 text-gray-900">{horario.ficha_numero}</span>
+                  </div>
+                )}
+                
+                {horario.ambiente_nombre && (
+                  <div>
+                    <span className="font-medium text-gray-700">Ambiente:</span>
+                    <span className="ml-2 text-gray-900">{horario.ambiente_codigo || horario.ambiente_nombre}</span>
+                  </div>
+                )}
               </div>
-            )}
-            
-            {horario.ficha_numero && horario.ficha_numero !== 'N/A' && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Ficha:</span>
-                <span className="text-sm text-gray-900">{horario.ficha_numero}</span>
-              </div>
-            )}
-            
-            {horario.competencia_nombre && horario.competencia_nombre !== 'N/A' && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Competencia:</span>
-                <span className="text-sm text-gray-900 truncate ml-4">{horario.competencia_nombre}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Campos editables */}
-          <div className="space-y-2">
-            <Label>Día de la Semana <span className="text-red-500">*</span></Label>
-            <Select 
-              value={formData.dia_semana} 
-              onValueChange={(v) => setFormData({...formData, dia_semana: v})}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {diasSemana.map(d => (
-                  <SelectItem key={d} value={d}>{d}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Hora Inicio <span className="text-red-500">*</span></Label>
-              <Input 
-                type="time" 
-                required 
-                value={formData.hora_inicio} 
-                onChange={(e) => setFormData({...formData, hora_inicio: e.target.value})} 
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Hora Fin <span className="text-red-500">*</span></Label>
-              <Input 
-                type="time" 
-                required 
-                value={formData.hora_fin} 
-                onChange={(e) => setFormData({...formData, hora_fin: e.target.value})} 
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Fecha Inicio <span className="text-red-500">*</span></Label>
-              <Input 
-                type="date" 
-                required 
-                value={formData.fecha_inicio} 
-                onChange={(e) => setFormData({...formData, fecha_inicio: e.target.value})} 
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Fecha Fin <span className="text-red-500">*</span></Label>
-              <Input 
-                type="date" 
-                required 
-                value={formData.fecha_fin} 
-                onChange={(e) => setFormData({...formData, fecha_fin: e.target.value})} 
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Observaciones</Label>
-            <Textarea 
-              value={formData.observaciones} 
-              onChange={(e) => setFormData({...formData, observaciones: e.target.value})} 
-              rows={3}
-              placeholder="Observaciones adicionales..."
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              className="bg-[#39A900] hover:bg-[#2d8000]" 
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                'Guardar Cambios'
+              
+              {/* Competencia con tooltip si es muy larga */}
+              {horario.competencia_nombre && horario.competencia_nombre !== 'N/A' && (
+                <div className="pt-2 border-t">
+                  <span className="font-medium text-gray-700 text-sm">Competencia:</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-sm text-gray-900 mt-1 line-clamp-2 cursor-help">
+                          {horario.competencia_nombre}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <p className="text-sm">{horario.competencia_nombre}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               )}
-            </Button>
-          </DialogFooter>
-        </form>
+            </div>
+
+            {/* Campos editables */}
+            <div className="space-y-2">
+              <Label>Día de la Semana <span className="text-red-500">*</span></Label>
+              <Select 
+                value={formData.dia_semana} 
+                onValueChange={(v) => setFormData({...formData, dia_semana: v})}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {diasSemana.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Hora Inicio <span className="text-red-500">*</span></Label>
+                <Input 
+                  type="time" 
+                  required 
+                  value={formData.hora_inicio} 
+                  onChange={(e) => setFormData({...formData, hora_inicio: e.target.value})} 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Hora Fin <span className="text-red-500">*</span></Label>
+                <Input 
+                  type="time" 
+                  required 
+                  value={formData.hora_fin} 
+                  onChange={(e) => setFormData({...formData, hora_fin: e.target.value})} 
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Fecha Inicio <span className="text-red-500">*</span></Label>
+                <Input 
+                  type="date" 
+                  required 
+                  value={formData.fecha_inicio} 
+                  onChange={(e) => setFormData({...formData, fecha_inicio: e.target.value})} 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Fecha Fin <span className="text-red-500">*</span></Label>
+                <Input 
+                  type="date" 
+                  required 
+                  value={formData.fecha_fin} 
+                  onChange={(e) => setFormData({...formData, fecha_fin: e.target.value})} 
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Observaciones</Label>
+              <Textarea 
+                value={formData.observaciones} 
+                onChange={(e) => setFormData({...formData, observaciones: e.target.value})} 
+                rows={3}
+                placeholder="Observaciones adicionales..."
+              />
+            </div>
+          </form>
+        </div>
+
+        {/* FOOTER FIJO */}
+        <DialogFooter className="flex-shrink-0 border-t pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button 
+            type="button"
+            onClick={handleSubmit}
+            className="bg-[#39A900] hover:bg-[#2d8000]" 
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              'Guardar Cambios'
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
