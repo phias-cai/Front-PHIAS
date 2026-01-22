@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 export function ChangePassword() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -76,8 +76,10 @@ export function ChangePassword() {
       setNewPassword('');
       setConfirmPassword('');
 
-      // Ocultar mensaje de éxito después de 5 segundos
-      setTimeout(() => setSuccess(false), 5000);
+      // Cerrar sesión después de 3 segundos
+      setTimeout(() => {
+        logout();
+      }, 3000);
     } catch (error: any) {
       setError(error.message || 'Error al cambiar la contraseña');
     } finally {
@@ -103,6 +105,16 @@ export function ChangePassword() {
   const strength = passwordStrength(newPassword);
 
   return (
+    <div className="min-h-screen relative">
+      {/* Imagen de fondo MUY sutil */}
+      <div
+        className="fixed inset-0 bg-cover bg-center pointer-events-none"
+        style={{
+          backgroundImage: `url('/cai.jpg')`,
+          filter: 'brightness(1.2)',
+          opacity: '0.1'
+        }}
+      />
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
@@ -129,7 +141,9 @@ export function ChangePassword() {
               <Alert className="bg-green-50 border-green-200">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">
-                  ¡Contraseña actualizada exitosamente!
+                  ¡Contraseña actualizada exitosamente! Cerrando sesión en 3 segundos...
+                  <br />
+                  <span className="text-sm">Por favor, inicia sesión nuevamente con tu nueva contraseña.</span>
                 </AlertDescription>
               </Alert>
             )}
@@ -273,6 +287,7 @@ export function ChangePassword() {
           </form>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }

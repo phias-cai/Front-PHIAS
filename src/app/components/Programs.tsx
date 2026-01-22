@@ -77,7 +77,7 @@ export function Programs() {
     descripcion: '',
   });
 
-  // Cargar programas con estadÃ­sticas
+  // Cargar programas con estadísticas
   const fetchProgramas = async () => {
     try {
       setLoading(true);
@@ -290,19 +290,16 @@ export function Programs() {
   const canManageProgramas = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-      <div className="min-h-screen relative">
-    {/* Imagen de fondo MUY sutil */}
-    <div 
-      className="fixed inset-0 bg-cover bg-center pointer-events-none"
-      style={{
-        backgroundImage: `url('/cai.jpg')`,
-        filter: 'brightness(1.2)',
-        opacity: '0.1'
-      }}
-    />
-    
-    {/* Contenido */}
-    <div className="relative space-y-6">
+     <div className="min-h-screen relative">
+      {/* Imagen de fondo MUY sutil */}
+      <div
+        className="fixed inset-0 bg-cover bg-center pointer-events-none"
+        style={{
+          backgroundImage: `url('/cai.jpg')`,
+          filter: 'brightness(1.2)',
+          opacity: '0.1'
+        }}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -487,7 +484,7 @@ export function Programs() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar por nombre o cÃ³digo de programa..."
+                placeholder="Buscar por nombre o código de programa..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -528,7 +525,7 @@ export function Programs() {
                     <CardTitle className="text-lg text-[#00304D] mb-2">{program.nombre}</CardTitle>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="text-xs">
-                        CÃ³digo: {program.numero}
+                        Código: {program.numero}
                       </Badge>
                       <Badge className="text-xs" style={{ backgroundColor: getTipoColor(program.tipo) }}>
                         {getTipoLabel(program.tipo)}
@@ -675,7 +672,7 @@ export function Programs() {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-duracion">Duración (meses)</Label>
+                <Label htmlFor="edit-duracion">DuraciÃ³n (meses)</Label>
                 <Input
                   id="edit-duracion"
                   type="number"
@@ -696,7 +693,7 @@ export function Programs() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-version">Versión</Label>
+                <Label htmlFor="edit-version">VersiÃ³n</Label>
                 <Input
                   id="edit-version"
                   value={editFormData.version}
@@ -706,7 +703,7 @@ export function Programs() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-descripcion">Descripción</Label>
+              <Label htmlFor="edit-descripcion">DescripciÃ³n</Label>
               <Textarea
                 id="edit-descripcion"
                 value={editFormData.descripcion}
@@ -743,18 +740,18 @@ export function Programs() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {selectedPrograma?.is_active ? '¿Desactivar programa?' : '¿Activar programa?'}
+              {selectedPrograma?.is_active ? 'Â¿Desactivar programa?' : 'Â¿Activar programa?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedPrograma?.is_active ? (
                 <>
-                  ¿Estás seguro de desactivar <strong>{selectedPrograma?.nombre}</strong>? 
-                  No se podrán crear nuevas fichas para este programa.
+                  Â¿EstÃ¡s seguro de desactivar <strong>{selectedPrograma?.nombre}</strong>? 
+                  No se podrÃ¡n crear nuevas fichas para este programa.
                 </>
               ) : (
                 <>
-                  ¿Estás seguro de activar <strong>{selectedPrograma?.nombre}</strong>?
-                  Se podrán crear fichas nuevamente.
+                  Â¿EstÃ¡s seguro de activar <strong>{selectedPrograma?.nombre}</strong>?
+                  Se podrÃ¡n crear fichas nuevamente.
                 </>
               )}
             </AlertDialogDescription>
@@ -776,6 +773,5 @@ export function Programs() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-    </div>
-  )
+  );
 }

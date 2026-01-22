@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collap
 import { Search, Plus, Target, ChevronDown, ChevronRight, Loader2, CheckCircle, XCircle, Edit, UserX, UserCheck, Download, Upload } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
-// DeclaraciÃ³n de XLSX global
+// Declaración de XLSX global
 declare global {
   interface Window {
     XLSX: any;
@@ -172,14 +172,14 @@ export function Competencies() {
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
     
-    // Cargar resultados si se estÃ¡ abriendo y aÃºn no se han cargado
+    // Cargar resultados si se está abriendo y aún no se han cargado
     if (isOpening && !resultados[id]) {
       fetchResultados(id);
     }
   };
 
   // ============================================
-  // CREAR COMPETENCIAS (MÃšLTIPLES)
+  // CREAR COMPETENCIAS (MÚLTIPLES)
   // ============================================
   const addCompetenciaRow = () => {
     setCreateFormData({
@@ -229,7 +229,7 @@ export function Competencies() {
           p_nombre: competencia.nombre,
           p_duracion_horas: duracion,
           p_descripcion: null,
-          p_orden: i + 1, // Orden automÃ¡tico basado en la posiciÃ³n
+          p_orden: i + 1, // Orden automático basado en la posición
         });
 
         if (error) {
@@ -272,18 +272,18 @@ export function Competencies() {
   };
 
   // ============================================
-  // IMPORTACIÃ“N MASIVA DESDE EXCEL
+  // IMPORTACIÓN MASIVA DESDE EXCEL
   // ============================================
   const downloadCompetenciasTemplate = () => {
     // Crear datos de ejemplo para la plantilla
     const templateData = [
       ['Número', 'Nombre', 'Duración (horas)'],
-      ['220501001', 'Desarrollar software aplicando técnicas de programaciÃ³n', '480'],
-      ['220501002', 'Implementar estructuras de datos para soluciÃ³n de problemas', '360'],
+      ['220501001', 'Desarrollar software aplicando técnicas de programación', '480'],
+      ['220501002', 'Implementar estructuras de datos para solución de problemas', '360'],
       ['', '', ''],
     ];
 
-    // Crear hoja de cÃ¡lculo
+    // Crear hoja de cálculo
     const ws = window.XLSX.utils.aoa_to_sheet(templateData);
     const wb = window.XLSX.utils.book_new();
     window.XLSX.utils.book_append_sheet(wb, ws, 'Competencias');
@@ -399,7 +399,7 @@ export function Competencies() {
 
     const duracion = parseInt(editFormData.duracion_horas);
     if (isNaN(duracion) || duracion <= 0) {
-      setResult({ success: false, message: 'La duraciÃ³n debe ser mayor a 0' });
+      setResult({ success: false, message: 'La duración debe ser mayor a 0' });
       return;
     }
 
@@ -549,19 +549,16 @@ export function Competencies() {
   const canManageCompetencias = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-  <div className="min-h-screen relative">
-    {/* Imagen de fondo MUY sutil */}
-    <div 
-      className="fixed inset-0 bg-cover bg-center pointer-events-none"
-      style={{
-        backgroundImage: `url('/cai.jpg')`,
-        filter: 'brightness(1.2)',
-        opacity: '0.1'
-      }}
-    />
-    
-    {/* Contenido */}
-    <div className="relative space-y-6">
+    <div className="min-h-screen relative">
+      {/* Imagen de fondo MUY sutil */}
+      <div
+        className="fixed inset-0 bg-cover bg-center pointer-events-none"
+        style={{
+          backgroundImage: `url('/cai.jpg')`,
+          filter: 'brightness(1.2)',
+          opacity: '0.1'
+        }}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -604,7 +601,7 @@ export function Competencies() {
 
               <div className="flex-1 overflow-y-auto px-1">
                 <form onSubmit={handleCreateCompetencia} className="space-y-4">
-                {/* Importación masiva */}
+                {/* ImportaciÃ³n masiva */}
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -795,7 +792,7 @@ export function Competencies() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Buscar por nombre, cÃ³digo o programa..."
+              placeholder="Buscar por nombre, código o programa..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -829,7 +826,7 @@ export function Competencies() {
                             </CardTitle>
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge variant="outline">
-                                CÃ³digo: {competency.numero}
+                                Código: {competency.numero}
                               </Badge>
                               <Badge style={{ backgroundColor: color }}>
                                 {competency.duracion_horas} horas
@@ -975,7 +972,7 @@ export function Competencies() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-duracion">Duración (horas)</Label>
+                <Label htmlFor="edit-duracion">DuraciÃ³n (horas)</Label>
                 <Input
                   id="edit-duracion"
                   type="number"
@@ -998,7 +995,7 @@ export function Competencies() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-descripcion">Descripción</Label>
+              <Label htmlFor="edit-descripcion">DescripciÃ³n</Label>
               <Textarea
                 id="edit-descripcion"
                 value={editFormData.descripcion}
@@ -1074,7 +1071,7 @@ export function Competencies() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="resultado-horas">Duración (horas)</Label>
+                <Label htmlFor="resultado-horas">DuraciÃ³n (horas)</Label>
                 <Input
                   id="resultado-horas"
                   type="number"
@@ -1125,16 +1122,16 @@ export function Competencies() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {selectedCompetencia?.is_active ? 'Â¿Desactivar competencia?' : 'Â¿Activar competencia?'}
+              {selectedCompetencia?.is_active ? 'Ã‚Â¿Desactivar competencia?' : 'Ã‚Â¿Activar competencia?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedCompetencia?.is_active ? (
                 <>
-                  Â¿EstÃ¡s seguro de desactivar <strong>{selectedCompetencia?.nombre}</strong>?
+                  Ã‚Â¿EstÃƒÂ¡s seguro de desactivar <strong>{selectedCompetencia?.nombre}</strong>?
                 </>
               ) : (
                 <>
-                  Â¿EstÃ¡s seguro de activar <strong>{selectedCompetencia?.nombre}</strong>?
+                  Ã‚Â¿EstÃƒÂ¡s seguro de activar <strong>{selectedCompetencia?.nombre}</strong>?
                 </>
               )}
             </AlertDialogDescription>
@@ -1156,7 +1153,5 @@ export function Competencies() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-    </div>
-  
   );
 }

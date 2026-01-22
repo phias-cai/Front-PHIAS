@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Login } from "./components/Login";
 import { Sidebar } from "./components/Sidebar";
@@ -11,6 +11,7 @@ import { Competencies } from "./components/Competencies";
 import { Environments } from "./components/Environments";
 import { Results } from "./components/Results";
 import { Users } from "./components/Users";
+import { ChangePassword } from "./components/ChangePassword";
 import { Footer } from "./components/Footer";
 import { Horarios } from "./components/Horarios";
 
@@ -18,6 +19,16 @@ function AppContent() {
   const [activeView, setActiveView] = useState("home");
   const [navigationData, setNavigationData] = useState<any>(null);
   const { isAuthenticated } = useAuth();
+  const prevAuthRef = useRef<boolean | null>(null);
+
+  // Resetear a home cuando se hace login (false → true)
+  useEffect(() => {
+    if (prevAuthRef.current === false && isAuthenticated === true) {
+      setActiveView("home");
+      setNavigationData(null);
+    }
+    prevAuthRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   const handleNavigation = (view: string, data?: any) => {
     setActiveView(view);
@@ -45,6 +56,8 @@ function AppContent() {
         return <Results />;
       case "users":
         return <Users />;
+      case "change-password":
+        return <ChangePassword />;
       default:
         return <Home onNavigate={handleNavigation} />;
     }

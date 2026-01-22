@@ -67,19 +67,19 @@ export function Results() {
   const [competencias, setCompetencias] = useState<CompetenciaData[]>([]);
   const [programas, setProgramas] = useState<ProgramaOption[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Estados para modales
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  
+
   // Estados para operaciones
   const [operationLoading, setOperationLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
-  
+
   // Resultado seleccionado
   const [selectedResultado, setSelectedResultado] = useState<ResultadoData | null>(null);
-  
+
   // Formularios
   const [createFormData, setCreateFormData] = useState({
     programa_id: '',
@@ -136,7 +136,7 @@ export function Results() {
   const fetchResultados = async () => {
     try {
       setLoading(true);
-      
+
       let query = supabase
         .from('resultados_aprendizaje')
         .select(`
@@ -159,7 +159,7 @@ export function Results() {
       const { data, error } = await query;
 
       if (error) throw error;
-      
+
       // Aplanar datos para facilitar el uso
       const flattedData = data?.map((r: any) => ({
         ...r,
@@ -228,8 +228,8 @@ export function Results() {
         const { data, error } = await supabase.rpc('create_resultado', {
           p_competencia_id: createFormData.competencia_id,
           p_nombre: resultado.nombre,
-          p_duracion_horas: resultado.duracion_horas 
-            ? parseInt(resultado.duracion_horas) 
+          p_duracion_horas: resultado.duracion_horas
+            ? parseInt(resultado.duracion_horas)
             : null,
           p_descripcion: null,
           p_orden: i + 1, // Orden automÃ¡tico basado en la posiciÃ³n
@@ -251,9 +251,9 @@ export function Results() {
       }
 
       if (successCount > 0) {
-        setResult({ 
-          success: true, 
-          message: `${successCount} resultado(s) creado(s) exitosamente${errorCount > 0 ? `. ${errorCount} con errores.` : ''}` 
+        setResult({
+          success: true,
+          message: `${successCount} resultado(s) creado(s) exitosamente${errorCount > 0 ? `. ${errorCount} con errores.` : ''}`
         });
         setCreateFormData({
           programa_id: '',
@@ -317,13 +317,13 @@ export function Results() {
 
       // Saltar la primera fila (encabezados)
       const rows = jsonData.slice(1) as any[];
-      
+
       let successCount = 0;
       let errorCount = 0;
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        
+
         // Validar que la fila tenga al menos el nombre
         if (!row[0]) continue;
 
@@ -359,9 +359,9 @@ export function Results() {
       }
 
       if (successCount > 0) {
-        setResult({ 
-          success: true, 
-          message: `${successCount} resultado(s) importado(s) exitosamente${errorCount > 0 ? `. ${errorCount} con errores.` : ''}` 
+        setResult({
+          success: true,
+          message: `${successCount} resultado(s) importado(s) exitosamente${errorCount > 0 ? `. ${errorCount} con errores.` : ''}`
         });
         fetchResultados();
         setTimeout(() => {
@@ -406,8 +406,8 @@ export function Results() {
       const { data, error } = await supabase.rpc('update_resultado', {
         p_resultado_id: selectedResultado.id,
         p_nombre: editFormData.nombre,
-        p_duracion_horas: editFormData.duracion_horas 
-          ? parseInt(editFormData.duracion_horas) 
+        p_duracion_horas: editFormData.duracion_horas
+          ? parseInt(editFormData.duracion_horas)
           : null,
         p_descripcion: editFormData.descripcion || null,
         p_orden: parseInt(editFormData.orden),
@@ -449,8 +449,8 @@ export function Results() {
     setOperationLoading(true);
 
     try {
-      const functionName = selectedResultado.is_active 
-        ? 'deactivate_resultado' 
+      const functionName = selectedResultado.is_active
+        ? 'deactivate_resultado'
         : 'activate_resultado';
 
       const { data, error } = await supabase.rpc(functionName, {
@@ -494,23 +494,23 @@ export function Results() {
   const canManageResultados = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-      <div className="min-h-screen relative">
-    {/* Imagen de fondo MUY sutil */}
-    <div 
-      className="fixed inset-0 bg-cover bg-center pointer-events-none"
-      style={{
-        backgroundImage: `url('/cai.jpg')`,
-        filter: 'brightness(1.2)',
-        opacity: '0.1'
-      }}
-    />
+    <div className="min-h-screen relative">
+      {/* Imagen de fondo MUY sutil */}
+      <div
+        className="fixed inset-0 bg-cover bg-center pointer-events-none"
+        style={{
+          backgroundImage: `url('/cai.jpg')`,
+          filter: 'brightness(1.2)',
+          opacity: '0.1'
+        }}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[#00304D]">Resultados de Aprendizaje</h1>
           <p className="text-gray-600 mt-1">Gestión de RAP por competencia</p>
         </div>
-        
+
         {canManageResultados && (
           <Dialog open={createDialogOpen} onOpenChange={(open) => {
             setCreateDialogOpen(open);
@@ -547,164 +547,164 @@ export function Results() {
 
               <div className="flex-1 overflow-y-auto px-1">
                 <form onSubmit={handleCreateResultados} className="space-y-4">
-                {/* Importación masiva */}
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-blue-900">Importación masiva</p>
-                        <p className="text-xs text-blue-700">Carga múltiples resultados desde Excel</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={downloadResultadosTemplate}
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          Plantilla
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={!createFormData.programa_id || !createFormData.competencia_id}
-                          onClick={() => document.getElementById('excel-resultados-input')?.click()}
-                        >
-                          <Upload className="h-3 w-3 mr-1" />
-                          Importar
-                        </Button>
-                        <input
-                          id="excel-resultados-input"
-                          type="file"
-                          accept=".xlsx,.xls"
-                          className="hidden"
-                          onChange={handleImportResultadosExcel}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="space-y-2">
-                  <Label htmlFor="programa">Programa <span className="text-red-500">*</span></Label>
-                  <Select
-                    value={createFormData.programa_id}
-                    onValueChange={(value) => setCreateFormData({ ...createFormData, programa_id: value, competencia_id: '' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un programa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {programas.map(programa => (
-                        <SelectItem key={programa.id} value={programa.id}>
-                          {programa.numero} - {programa.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="competencia">Competencia <span className="text-red-500">*</span></Label>
-                  <Select
-                    value={createFormData.competencia_id}
-                    onValueChange={(value) => setCreateFormData({ ...createFormData, competencia_id: value })}
-                    disabled={!createFormData.programa_id}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={createFormData.programa_id ? "Selecciona una competencia" : "Primero selecciona un programa"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {competenciasFiltradas.map(comp => (
-                        <SelectItem key={comp.id} value={comp.id}>
-                          {comp.numero} - {comp.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Resultados de Aprendizaje</Label>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={addResultadoRow}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Agregar Resultado
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {createFormData.resultados.map((resultado, index) => (
-                      <Card key={index} className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">Resultado #{index + 1}</Label>
-                            {createFormData.resultados.length > 1 && (
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => removeResultadoRow(index)}
-                              >
-                                <XCircle className="h-4 w-4 text-red-600" />
-                              </Button>
-                            )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor={`nombre-${index}`}>Nombre <span className="text-red-500">*</span></Label>
-                            <Textarea
-                              id={`nombre-${index}`}
-                              placeholder="Identificar las necesidades del cliente..."
-                              value={resultado.nombre}
-                              onChange={(e) => updateResultadoRow(index, 'nombre', e.target.value)}
-                              rows={2}
-                              required
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor={`duracion-${index}`}>Duración en horas (opcional)</Label>
-                            <Input
-                              id={`duracion-${index}`}
-                              type="number"
-                              min="0"
-                              placeholder="40"
-                              value={resultado.duracion_horas}
-                              onChange={(e) => updateResultadoRow(index, 'duracion_horas', e.target.value)}
-                            />
-                          </div>
+                  {/* Importación masiva */}
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Importación masiva</p>
+                          <p className="text-xs text-blue-700">Carga múltiples resultados desde Excel</p>
                         </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={downloadResultadosTemplate}
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Plantilla
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={!createFormData.programa_id || !createFormData.competencia_id}
+                            onClick={() => document.getElementById('excel-resultados-input')?.click()}
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            Importar
+                          </Button>
+                          <input
+                            id="excel-resultados-input"
+                            type="file"
+                            accept=".xlsx,.xls"
+                            className="hidden"
+                            onChange={handleImportResultadosExcel}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-[#39A900] hover:bg-[#2d8000]"
-                  disabled={operationLoading || !createFormData.competencia_id}
-                >
-                  {operationLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creando {createFormData.resultados.length} resultado(s)...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Crear {createFormData.resultados.length} Resultado(s)
-                    </>
-                  )}
-                </Button>
-              </form>
+                  <div className="space-y-2">
+                    <Label htmlFor="programa">Programa <span className="text-red-500">*</span></Label>
+                    <Select
+                      value={createFormData.programa_id}
+                      onValueChange={(value) => setCreateFormData({ ...createFormData, programa_id: value, competencia_id: '' })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un programa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {programas.map(programa => (
+                          <SelectItem key={programa.id} value={programa.id}>
+                            {programa.numero} - {programa.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="competencia">Competencia <span className="text-red-500">*</span></Label>
+                    <Select
+                      value={createFormData.competencia_id}
+                      onValueChange={(value) => setCreateFormData({ ...createFormData, competencia_id: value })}
+                      disabled={!createFormData.programa_id}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={createFormData.programa_id ? "Selecciona una competencia" : "Primero selecciona un programa"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {competenciasFiltradas.map(comp => (
+                          <SelectItem key={comp.id} value={comp.id}>
+                            {comp.numero} - {comp.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Resultados de Aprendizaje</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addResultadoRow}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Agregar Resultado
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {createFormData.resultados.map((resultado, index) => (
+                        <Card key={index} className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-medium">Resultado #{index + 1}</Label>
+                              {createFormData.resultados.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeResultadoRow(index)}
+                                >
+                                  <XCircle className="h-4 w-4 text-red-600" />
+                                </Button>
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`nombre-${index}`}>Nombre <span className="text-red-500">*</span></Label>
+                              <Textarea
+                                id={`nombre-${index}`}
+                                placeholder="Identificar las necesidades del cliente..."
+                                value={resultado.nombre}
+                                onChange={(e) => updateResultadoRow(index, 'nombre', e.target.value)}
+                                rows={2}
+                                required
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`duracion-${index}`}>Duración en horas (opcional)</Label>
+                              <Input
+                                id={`duracion-${index}`}
+                                type="number"
+                                min="0"
+                                placeholder="40"
+                                value={resultado.duracion_horas}
+                                onChange={(e) => updateResultadoRow(index, 'duracion_horas', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-[#39A900] hover:bg-[#2d8000]"
+                    disabled={operationLoading || !createFormData.competencia_id}
+                  >
+                    {operationLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creando {createFormData.resultados.length} resultado(s)...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Crear {createFormData.resultados.length} Resultado(s)
+                      </>
+                    )}
+                  </Button>
+                </form>
               </div>
             </DialogContent>
           </Dialog>
@@ -778,7 +778,7 @@ export function Results() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredResultados.map((resultado: any) => {
             const color = getTipoColor(resultado.programa_tipo || '');
-            
+
             return (
               <Card key={resultado.id} className="border-l-4 hover:shadow-md transition-shadow" style={{ borderLeftColor: color }}>
                 <CardHeader>
@@ -818,17 +818,17 @@ export function Results() {
 
                   {canManageResultados && (
                     <div className="flex gap-2 pt-3 border-t">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex-1"
                         onClick={() => openEditDialog(resultado)}
                       >
                         <Edit className="h-3 w-3 mr-1" />
                         Editar
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         className={resultado.is_active ? "text-red-600" : "text-green-600"}
                         onClick={() => openDeleteDialog(resultado)}
@@ -965,6 +965,6 @@ export function Results() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-    
+
   );
 }

@@ -1,5 +1,5 @@
 // src/contexts/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react'
 import { supabase, UserProfile, UserRole } from '../../lib/supabase'
 
 export type { UserRole }
@@ -26,22 +26,49 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const isFetchingRef = useRef(false)
 
-  // Obtener perfil completo del usuario
   const fetchUserProfile = async (userId: string): Promise<User | null> => {
+    // Prevenir fetches concurrentes
+    if (isFetchingRef.current) {
+      console.log('⏭️ [FetchProfile] Ya hay fetch en progreso, omitiendo...')
+      return null
+    }
+
+    isFetchingRef.current = true
+    
     try {
+      console.log('🔍 [FetchProfile] Iniciando para userId:', userId)
+      
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
+      console.log('📊 [FetchProfile] Resultado:', {
+        hasProfile: !!profile,
+        hasError: !!error,
+        errorCode: error?.code,
+        errorMsg: error?.message,
+        profileEmail: profile?.email
+      })
+
       if (error) {
-        console.error('Error fetching profile:', error)
+        console.error('❌ [FetchProfile] Error:', error)
+        isFetchingRef.current = false
         return null
       }
 
-      return {
+      if (!profile) {
+        console.error('❌ [FetchProfile] No profile returned')
+        isFetchingRef.current = false
+        return null
+      }
+
+      console.log('✅ [FetchProfile] Success:', profile.email)
+
+      const userProfile = {
         id: profile.id,
         name: profile.nombres,
         email: profile.email,
@@ -49,13 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: profile.avatar_url,
         profile: profile
       }
+
+      isFetchingRef.current = false
+      return userProfile
     } catch (error) {
-      console.error('Error in fetchUserProfile:', error)
+      console.error('❌ [FetchProfile] Exception:', error)
+      isFetchingRef.current = false
       return null
     }
   }
 
-  // Login con Supabase
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -63,10 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password
       })
 
-      if (error) {
-        console.error('Login error:', error)
-        return false
-      }
+      if (error) return false
 
       if (data.user) {
         const userProfile = await fetchUserProfile(data.user.id)
@@ -78,55 +105,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return false
     } catch (error) {
-      console.error('Login exception:', error)
       return false
     }
   }
 
-  // Logout
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut()
-      setUser(null)
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
+  const logout = () => {
+    supabase.auth.signOut()
+    setUser(null)
   }
 
-  // Verificar sesión al cargar
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user) {
-          const userProfile = await fetchUserProfile(session.user.id)
-          setUser(userProfile)
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error)
-      } finally {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then(profile => {
+          if (profile) setUser(profile)
+          setLoading(false)
+        })
+      } else {
         setLoading(false)
       }
-    }
+    })
 
-    initializeAuth()
-
-    // Listener de cambios en auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const userProfile = await fetchUserProfile(session.user.id)
-          setUser(userProfile)
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null)
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then(profile => {
+          if (profile) setUser(profile)
+        })
+      } else {
+        setUser(null)
       }
-    )
+    })
 
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => subscription.unsubscribe()
   }, [])
 
   return (

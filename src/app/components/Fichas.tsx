@@ -99,7 +99,7 @@ export function Fichas({ onNavigate }: FichasProps) {
     coordinador_id: '', // ID del instructor seleccionado
   });
 
-  // Cargar fichas con estadÃ­sticas
+  // Cargar fichas con estadísticas
   const fetchFichas = async () => {
     try {
       setLoading(true);
@@ -372,19 +372,16 @@ export function Fichas({ onNavigate }: FichasProps) {
   const canManageFichas = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
   return (
-      <div className="min-h-screen relative">
-    {/* Imagen de fondo MUY sutil */}
-    <div 
-      className="fixed inset-0 bg-cover bg-center pointer-events-none"
-      style={{
-        backgroundImage: `url('/cai.jpg')`,
-        filter: 'brightness(1.2)',
-        opacity: '0.1'
-      }}
-    />
-    
-    {/* Contenido */}
-    <div className="relative space-y-6">
+     <div className="min-h-screen relative">
+      {/* Imagen de fondo MUY sutil */}
+      <div
+        className="fixed inset-0 bg-cover bg-center pointer-events-none"
+        style={{
+          backgroundImage: `url('/cai.jpg')`,
+          filter: 'brightness(1.2)',
+          opacity: '0.1'
+        }}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -601,7 +598,7 @@ export function Fichas({ onNavigate }: FichasProps) {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar por nÃºmero de ficha o programa..."
+                placeholder="Buscar por número de ficha o programa..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -887,7 +884,7 @@ export function Fichas({ onNavigate }: FichasProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {selectedFicha?.is_active ? '¿Desactivar ficha?' : '¿Activar ficha?'}
+              {selectedFicha?.is_active ? 'Â¿Desactivar ficha?' : 'Â¿Activar ficha?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedFicha?.is_active ? (
@@ -919,7 +916,6 @@ export function Fichas({ onNavigate }: FichasProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
     </div>
   );
 }
