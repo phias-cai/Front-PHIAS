@@ -1,4 +1,4 @@
-// src/components/Horarios.tsx
+// src/app/components/Horarios.tsx
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { Card, CardContent } from "./ui/card";
@@ -12,8 +12,8 @@ import { EditHorarioModal } from "./horarios/EditHorarioModal";
 import { HorarioCard } from "./horarios/HorarioCard";
 import { CalendarView } from "./horarios/CalendarView";
 import { ExportModal } from "./horarios/ExportModal";
-import { UploadMassiveModal } from "./horarios/UploadMassiveModal"; // ⬅️ NUEVO
-import { UploadMassiveInstructorModal } from './horarios/Uploadmassiveinstructormodal'
+import { UploadMassiveModal } from "./horarios/UploadMassiveModal";
+import { UploadMassiveInstructorModal } from './horarios/Uploadmassiveinstructormodal';
 import { MonthSelector } from "./horarios/MonthSelector";
 
 interface HorarioData {
@@ -56,12 +56,13 @@ interface HorariosProps {
     instructorNombre?: string;
   } | null;
 }
+
 export function Horarios({ navigationData }: HorariosProps = {}) {
   const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [horarios, setHorarios] = useState<HorarioData[]>([]);
   const [uploadMassiveInstructorModalOpen, setUploadMassiveInstructorModalOpen] = useState(false);
-const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
   
   // Vista
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
@@ -77,14 +78,20 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [uploadMassiveModalOpen, setUploadMassiveModalOpen] = useState(false); // ⬅️ NUEVO
+  const [uploadMassiveModalOpen, setUploadMassiveModalOpen] = useState(false);
   const [selectedHorario, setSelectedHorario] = useState<HorarioData | null>(null);
   
   // Opciones para filtros
   const [fichas, setFichas] = useState<any[]>([]);
   const [instructores, setInstructores] = useState<any[]>([]);
   const [ambientes, setAmbientes] = useState<any[]>([]);
-  const [programaNombre, setProgramaNombre] = useState<string>(''); // ⬅️ NUEVO
+  const [programaNombre, setProgramaNombre] = useState<string>('');
+
+  // ============================================
+  // 🔥 CORRECCIÓN DEL ERROR - AGREGAR ESTA LÍNEA
+  // ============================================
+  const canManageHorarios = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
+  // ============================================
 
   useEffect(() => {
     loadFilterOptions();
@@ -93,7 +100,7 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
   useEffect(() => {
     loadHorarios();
   }, [filterMode, selectedFicha, selectedInstructor, selectedAmbiente]);
-  // Detectar navegación desde Fichas
+
   // Detectar navegación desde Fichas o Instructors
   useEffect(() => {
     if (navigationData?.fichaId) {
@@ -105,13 +112,44 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
     }
   }, [navigationData]);
 
-  
   // ✅ AUTO-SELECCIÓN: Si es instructor, seleccionarlo automáticamente en modo instructor
   useEffect(() => {
     if (currentUser?.role === 'instructor' && filterMode === 'instructor' && !selectedInstructor) {
       setSelectedInstructor(currentUser.id);
     }
   }, [currentUser, filterMode, selectedInstructor]);
+
+  // ⬅️ NUEVO: Cargar nombre del programa cuando se selecciona ficha
+  useEffect(() => {
+    if (selectedFicha) {
+      const loadProgramaNombre = async () => {
+        try {
+          const { data: fichaData } = await supabase
+            .from('fichas')
+            .select('programa_id')
+            .eq('id', selectedFicha)
+            .single();
+
+          if (fichaData?.programa_id) {
+            const { data: programaData } = await supabase
+              .from('programas')
+              .select('nombre')
+              .eq('id', fichaData.programa_id)
+              .single();
+
+            setProgramaNombre(programaData?.nombre || '');
+          }
+        } catch (error) {
+          console.error('Error loading programa nombre:', error);
+        }
+      };
+
+      loadProgramaNombre();
+    } else {
+      setProgramaNombre('');
+    }
+  }, [selectedFicha]);
+
   const loadFilterOptions = async () => {
     try {
       const { data: fichasData } = await supabase
@@ -152,41 +190,15 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
     }
   };
 
-  // ⬅️ NUEVO: Cargar nombre del programa cuando se selecciona ficha
-  useEffect(() => {
-    if (selectedFicha) {
-      const loadProgramaNombre = async () => {
-        try {
-          const { data: fichaData } = await supabase
-            .from('fichas')
-            .select('programa_id')
-            .eq('id', selectedFicha)
-            .single();
-
-          if (fichaData) {
-            const { data: programaData } = await supabase
-              .from('programas')
-              .select('nombre')
-              .eq('id', fichaData.programa_id)
-              .single();
-
-            setProgramaNombre(programaData?.nombre || '');
-          }
-        } catch (error) {
-          console.error('Error loading programa:', error);
-        }
-      };
-      
-      loadProgramaNombre();
-    } else {
-      setProgramaNombre('');
-    }
-  }, [selectedFicha]);
-
   const loadHorarios = async () => {
+    if (!selectedFicha && !selectedInstructor && !selectedAmbiente) {
+      setHorarios([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     try {
-      setLoading(true);
-      
       let rpcFunction = '';
       let rpcParams: any = {};
 
@@ -200,27 +212,20 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
         rpcFunction = 'get_horarios_ambiente';
         rpcParams = { p_ambiente_id: selectedAmbiente };
       } else {
-        const { data, error } = await supabase
-          .from('horarios_stats')
-          .select('*')
-          .eq('is_active', true)
-          .order('dia_semana')
-          .order('hora_inicio');
-        
-        if (error) throw error;
-        
-        console.log('📊 Horarios cargados (sin filtro):', data?.length);
-        setHorarios(data || []);
+        setHorarios([]);
         setLoading(false);
         return;
       }
 
-      console.log('🔍 Cargando horarios con:', { rpcFunction, rpcParams });
+      console.log('🔍 Llamando RPC:', rpcFunction, rpcParams);
 
       const { data, error } = await supabase.rpc(rpcFunction, rpcParams);
-      
-      if (error) throw error;
-      
+
+      if (error) {
+        console.error('❌ Error en RPC:', error);
+        throw error;
+      }
+
       const response = typeof data === 'string' ? JSON.parse(data) : data;
       
       console.log('📦 Respuesta del RPC:', response);
@@ -285,8 +290,6 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
         .reduce((sum, h) => sum + h.horas_semanales, 0)
     : 0;
 
-  const canManageHorarios = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
-
   const handleViewHorario = (horario: HorarioData) => {
     setSelectedHorario(horario);
     setViewModalOpen(true);
@@ -298,210 +301,229 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
   };
 
   return (
-     <div className="min-h-screen relative">
-    {/* Imagen de fondo MUY sutil */}
-    <div 
-      className="fixed inset-0 bg-cover bg-center pointer-events-none"
-      style={{
-        backgroundImage: `url('/cai.jpg')`,
-        filter: 'brightness(0.8)',
-        opacity: '0.2'
-      }}
-    />
-    
-    {/* Contenido */}
-    <div className="relative space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[#00304D]">Gestión de Horarios</h1>
-          <p className="text-gray-600 mt-1">
-            Administración de horarios de clases, apoyos y reservas
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          {/* Toggle Vista */}
-          <div className="flex border rounded-lg overflow-hidden">
-            <Button
-              variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('calendar')}
-              className={viewMode === 'calendar' ? 'bg-[#39A900] hover:bg-[#2d8000]' : ''}
-            >
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              Calendario
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className={viewMode === 'list' ? 'bg-[#39A900] hover:bg-[#2d8000]' : ''}
-            >
-              <List className="h-4 w-4 mr-2" />
-              Lista
-            </Button>
-          </div>
-{/*// 3. Botón (en la sección de botones, cuando filterMode === 'instructor')*/}
-{canManageHorarios && filterMode === 'instructor' && selectedInstructor && (
-  <Button 
-    variant="outline"
-    className="border-[#39A900] text-[#39A900] hover:bg-[#39A900] hover:text-white"
-    onClick={() => setUploadMassiveInstructorModalOpen(true)}
-  >
-    <Upload className="h-4 w-4 mr-2" />
-    Carga Masiva
-  </Button>
-)}
-          <Button 
-            variant="outline"
-            onClick={() => setExportModalOpen(true)}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
-          
-          {/* Botón de Carga Masiva (solo para ficha) */}
-          {canManageHorarios && filterMode === 'ficha' && selectedFicha && (
-            <Button 
-              variant="outline"
-              className="border-[#39A900] text-[#39A900] hover:bg-[#39A900] hover:text-white"
-              onClick={() => setUploadMassiveModalOpen(true)}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Carga Masiva
-            </Button>
-          )}
-          
-          {canManageHorarios && (
-            <Button 
-              className="bg-[#39A900] hover:bg-[#2d8000]"
-              onClick={() => setCreateModalOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Horario
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Stats Cards (Solo para instructor) */}
-      {filterMode === 'instructor' && selectedInstructor && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold text-[#39A900]">
-                {totalHorasInstructor.toFixed(1)}
-              </div>
-              <p className="text-sm text-gray-600">Horas Semanales</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold text-[#00304D]">
-                {horarios.filter(h => h.tipo === 'CLASE').length}
-              </div>
-              <p className="text-sm text-gray-600">Clases</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold text-[#007832]">
-                {horarios.filter(h => h.tipo === 'APOYO').length}
-              </div>
-              <p className="text-sm text-gray-600">Apoyos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold text-[#71277A]">
-                {horarios.filter(h => h.tipo === 'RESERVA').length}
-              </div>
-              <p className="text-sm text-gray-600">Reservas</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Filtros */}
-      <HorariosFilters
-        filterMode={filterMode}
-        setFilterMode={setFilterMode}
-        selectedFicha={selectedFicha}
-        setSelectedFicha={setSelectedFicha}
-        selectedInstructor={selectedInstructor}
-        setSelectedInstructor={setSelectedInstructor}
-        selectedAmbiente={selectedAmbiente}
-        setSelectedAmbiente={setSelectedAmbiente}
-        fichas={fichas}
-        instructores={instructores}
-        ambientes={ambientes}
-        userRole={currentUser?.role}
+    <div className="min-h-screen relative">
+      {/* Imagen de fondo MUY sutil */}
+      <div 
+        className="fixed inset-0 bg-cover bg-center pointer-events-none"
+        style={{
+          backgroundImage: `url('/cai.jpg')`,
+          filter: 'brightness(0.8)',
+          opacity: '0.2'
+        }}
       />
-      {/* ⬅️ AGREGAR ESTO AQUÍ */}
-      {/* Selector de Mes (Solo para instructor en vista lista) */}
-      {filterMode === 'instructor' && selectedInstructor && viewMode === 'list' && (
-        <MonthSelector
-          selectedMonth={selectedMonth}
-          onMonthChange={setSelectedMonth}
-          horarios={horarios}
-          instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
-        />
-      )}
-
-      {/* Contenido según vista */}
-      {loading ? (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-[#39A900]" />
-        </div>
-      ) : horarios.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <p className="text-gray-500">
-              No hay horarios registrados para los filtros seleccionados
+      
+      {/* Contenido */}
+      <div className="relative space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-[#00304D]">Gestión de Horarios</h1>
+            <p className="text-gray-600 mt-1">
+              Administración de horarios de clases, apoyos y reservas
             </p>
-          </CardContent>
-        </Card>
-      ) : viewMode === 'calendar' ? (
-        <CalendarView 
-          horarios={horarios} 
-          getTipoColor={getTipoColor}
-          onView={handleViewHorario}
-          filterMode={filterMode}  // ⬅️ AGREGADO: pasar el modo de filtro
-        />
-      ) : (
-        <div className="space-y-6">
-          {horariosAgrupados
-            .filter(grupo => grupo.horarios.length > 0)
-            .map(grupo => (
-              <div key={grupo.dia}>
-                <h2 className="text-xl font-bold text-[#00304D] mb-3">
-                  {grupo.dia}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {grupo.horarios.map(horario => (
-                    <HorarioCard
-                      key={horario.id}
-                      horario={horario}
-                      filterMode={filterMode}
-                      getTipoColor={getTipoColor}
-                      canManage={canManageHorarios}
-                      onUpdate={loadHorarios}
-                      onView={handleViewHorario}
-                      onEdit={handleEditHorario}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+          </div>
+          
+          <div className="flex gap-2">
+            {/* Toggle Vista */}
+            <div className="flex border rounded-lg overflow-hidden">
+              <Button
+                variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('calendar')}
+                className="rounded-none"
+              >
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                Calendario
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-none"
+              >
+                <List className="h-4 w-4 mr-2" />
+                Lista
+              </Button>
+            </div>
+
+            {/* Botón Exportar (Admin/Coordinador y con filtro seleccionado) */}
+            {canManageHorarios && (selectedFicha || selectedInstructor || selectedAmbiente) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExportModalOpen(true)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
+            )}
+
+            {/* Botón Carga Masiva por Ficha */}
+            {canManageHorarios && filterMode === 'ficha' && selectedFicha && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUploadMassiveModalOpen(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Carga Masiva
+              </Button>
+            )}
+
+            {/* Botón Carga Masiva por Instructor */}
+            {canManageHorarios && filterMode === 'instructor' && selectedInstructor && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUploadMassiveInstructorModalOpen(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Carga Masiva
+              </Button>
+            )}
+
+            {/* Botón Nuevo Horario */}
+            {canManageHorarios && (
+              <Button
+                onClick={() => setCreateModalOpen(true)}
+                size="sm"
+                className="bg-[#39A900] hover:bg-[#2d8000] text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Horario
+              </Button>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Stats Cards (Solo para instructor) */}
+        {filterMode === 'instructor' && selectedInstructor && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-2xl font-bold text-[#39A900]">
+                  {totalHorasInstructor.toFixed(1)}
+                </div>
+                <p className="text-sm text-gray-600">Horas Semanales</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-2xl font-bold text-[#00304D]">
+                  {horarios.filter(h => h.tipo === 'CLASE').length}
+                </div>
+                <p className="text-sm text-gray-600">Clases</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-2xl font-bold text-[#007832]">
+                  {horarios.filter(h => h.tipo === 'APOYO').length}
+                </div>
+                <p className="text-sm text-gray-600">Apoyos</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-2xl font-bold text-[#71277A]">
+                  {horarios.filter(h => h.tipo === 'RESERVA').length}
+                </div>
+                <p className="text-sm text-gray-600">Reservas</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Filtros */}
+        <HorariosFilters
+          filterMode={filterMode}
+          setFilterMode={setFilterMode}
+          selectedFicha={selectedFicha}
+          setSelectedFicha={setSelectedFicha}
+          selectedInstructor={selectedInstructor}
+          setSelectedInstructor={setSelectedInstructor}
+          selectedAmbiente={selectedAmbiente}
+          setSelectedAmbiente={setSelectedAmbiente}
+          fichas={fichas}
+          instructores={instructores}
+          ambientes={ambientes}
+          userRole={currentUser?.role}
+        />
+
+        {/* Selector de Mes (Solo para instructor en vista lista) */}
+        {filterMode === 'instructor' && selectedInstructor && viewMode === 'list' && (
+          <MonthSelector
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+            horarios={horarios}
+            instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
+          />
+        )}
+
+        {/* Contenido según vista */}
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-[#39A900]" />
+          </div>
+        ) : horarios.length === 0 ? (
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center text-gray-500">
+                <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No hay horarios registrados</p>
+                <p className="text-sm mt-2">
+                  {filterMode === 'instructor' && 'Selecciona un instructor para ver sus horarios'}
+                  {filterMode === 'ficha' && 'Selecciona una ficha para ver sus horarios'}
+                  {filterMode === 'ambiente' && 'Selecciona un ambiente para ver sus horarios'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {viewMode === 'calendar' ? (
+              <CalendarView
+                horarios={horarios}
+                getTipoColor={getTipoColor}
+                onView={handleViewHorario}
+                filterMode={filterMode}
+              />
+            ) : (
+              <div className="space-y-4">
+                {horariosAgrupados.map(({ dia, horarios: horariosDelDia }) => (
+                  horariosDelDia.length > 0 && (
+                    <div key={dia}>
+                      <h3 className="text-lg font-semibold text-[#00304D] mb-3">
+                        {dia}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {horariosDelDia.map((horario) => (
+                          <HorarioCard
+                            key={horario.id}
+                            horario={horario}
+                            getTipoColor={getTipoColor}
+                            onView={handleViewHorario}
+                            onEdit={canManageHorarios ? handleEditHorario : undefined}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Modales */}
       <CreateHorarioModal
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        onSuccess={loadHorarios}
+        onSuccess={() => {
+          setCreateModalOpen(false);
+          loadHorarios();
+        }}
         fichas={fichas}
         instructores={instructores}
         ambientes={ambientes}
@@ -509,16 +531,27 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
 
       <ViewHorarioModal
         open={viewModalOpen}
-        onClose={() => setViewModalOpen(false)}
+        onClose={() => {
+          setViewModalOpen(false);
+          setSelectedHorario(null);
+        }}
         horario={selectedHorario}
+        getTipoColor={getTipoColor}
         onEdit={handleEditHorario}
         canManage={canManageHorarios}
       />
 
       <EditHorarioModal
         open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        onSuccess={loadHorarios}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedHorario(null);
+        }}
+        onSuccess={() => {
+          setEditModalOpen(false);
+          setSelectedHorario(null);
+          loadHorarios();
+        }}
         horario={selectedHorario}
       />
 
@@ -526,38 +559,44 @@ const [selectedMonth, setSelectedMonth] = useState<string>('');
         open={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         filterMode={filterMode}
-        selectedId={
-          filterMode === 'ficha' ? selectedFicha :
-          filterMode === 'instructor' ? selectedInstructor :
-          selectedAmbiente
-        }
+        selectedId={selectedFicha || selectedInstructor || selectedAmbiente || ''}
         selectedName={
-          filterMode === 'ficha' 
-            ? fichas.find(f => f.id === selectedFicha)?.numero || ''
+          filterMode === 'ficha'
+            ? fichas.find(f => f.id === selectedFicha)?.numero
             : filterMode === 'instructor'
-            ? instructores.find(i => i.id === selectedInstructor)?.nombres || ''
-            : ambientes.find(a => a.id === selectedAmbiente)?.codigo || ''
+            ? instructores.find(i => i.id === selectedInstructor)?.nombres
+            : ambientes.find(a => a.id === selectedAmbiente)?.nombre
         }
       />
 
-      {/* ⬅️ NUEVO: Modal de Carga Masiva */}
-      <UploadMassiveModal
-        open={uploadMassiveModalOpen}
-        onClose={() => setUploadMassiveModalOpen(false)}
-        onSuccess={loadHorarios}
-        selectedFicha={selectedFicha}
-        fichaNumero={fichas.find(f => f.id === selectedFicha)?.numero || ''}
-        programaNombre={programaNombre || ''}
-      />
-        <UploadMassiveInstructorModal
-  open={uploadMassiveInstructorModalOpen}
-  onClose={() => setUploadMassiveInstructorModalOpen(false)}
-  onSuccess={loadHorarios}
-  selectedInstructor={selectedInstructor}
-  instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
-/>
-</div>
-  </div>
+      {/* Modal Carga Masiva por Ficha */}
+      {filterMode === 'ficha' && selectedFicha && (
+        <UploadMassiveModal
+          open={uploadMassiveModalOpen}
+          onClose={() => setUploadMassiveModalOpen(false)}
+          onSuccess={() => {
+            setUploadMassiveModalOpen(false);
+            loadHorarios();
+          }}
+          selectedFicha={selectedFicha}
+          fichaNumero={fichas.find(f => f.id === selectedFicha)?.numero || ''}
+          programaNombre={programaNombre}
+        />
+      )}
 
-);
+      {/* Modal Carga Masiva por Instructor */}
+      {filterMode === 'instructor' && selectedInstructor && (
+        <UploadMassiveInstructorModal
+          open={uploadMassiveInstructorModalOpen}
+          onClose={() => setUploadMassiveInstructorModalOpen(false)}
+          onSuccess={() => {
+            setUploadMassiveInstructorModalOpen(false);
+            loadHorarios();
+          }}
+          selectedInstructor={selectedInstructor}
+          instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
+        />
+      )}
+    </div>
+  );
 }

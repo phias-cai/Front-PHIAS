@@ -278,42 +278,156 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                               onClick={() => onView(horario)}
                             >
                               <div className="h-full overflow-hidden flex flex-col gap-0.5">
-                                {/* Apoyo o Título - Solo si hay espacio */}
-                                {height >= 50 && horario.tipo === 'CLASE' && horario.apoyo && (
-                                  <p className="text-[10px] font-bold text-[#00304D] truncate leading-tight">
-                                    📚 {horario.apoyo}
-                                  </p>
+                                {/* ==================== MODO FICHA ==================== */}
+                                {filterMode === 'ficha' && (
+                                  <>
+                                    {/* 1. APOYO - Si es tipo APOYO, mostrar con estilo destacado */}
+                                    {horario.tipo === 'CLASE' && horario.apoyo && (
+                                      <p className="text-[10px] font-bold text-[#2012eb] truncate leading-tight">
+                                        📚 {horario.apoyo?.toUpperCase()}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 2. INSTRUCTOR - Siempre visible */}
+                                    {horario.instructor_nombre && (
+                                      <div className="flex items-center gap-0.5 text-[9px] text-gray-600">
+                                        <Users className="h-2.5 w-2.5 flex-shrink-0" />
+                                        <span className="truncate">{horario.instructor_nombre}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* 3. AMBIENTE - Si hay espacio */}
+                                    {height >= 45 && horario.ambiente_nombre && (
+                                      <div className="flex items-center gap-0.5 text-[9px] text-gray-500">
+                                        <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+                                        <span className="truncate">{horario.ambiente_codigo || horario.ambiente_nombre}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* 4. COMPETENCIA - Solo CLASE, si hay espacio */}
+                                    {height >= 60 && horario.tipo === 'CLASE' && horario.competencia_nombre && (
+                                      <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
+                                        {horario.competencia_nombre}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 5. RESULTADO - Solo CLASE, si hay espacio */}
+                                    {height >= 75 && horario.tipo === 'CLASE' && horario.resultado_nombre && horario.resultado_nombre !== 'N/A' && (
+                                      <p className="text-[8px] text-gray-600 truncate">
+                                        {horario.resultado_nombre}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 6. HORARIO - Al final, si hay espacio */}
+                                    {height >= 90 && (
+                                      <div className="flex items-center gap-0.5 text-[9px] text-gray-400 mt-auto">
+                                        <Clock className="h-2.5 w-2.5 flex-shrink-0" />
+                                        <span className="truncate">{horario.hora_inicio.substring(0, 5)}</span>
+                                      </div>
+                                    )}
+                                  </>
                                 )}
                                 
-                                {/* Competencia o tipo - Siempre visible */}
-                                <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
-                                  {horario.tipo === 'CLASE' && horario.competencia_nombre}
-                                  {horario.tipo === 'APOYO' && horario.apoyo_tipo}
-                                  {horario.tipo === 'RESERVA' && 'Reserva'}
-                                </p>
-                                
-                                {/* Instructor - Solo si hay espacio */}
-                                {height >= 45 && (
-                                  <div className="flex items-center gap-0.5 text-[9px] text-gray-600">
-                                    <Users className="h-2.5 w-2.5 flex-shrink-0" />
-                                    <span className="truncate">{horario.instructor_nombre}</span>
-                                  </div>
+                                {/* ==================== MODO INSTRUCTOR ==================== */}
+                                {filterMode === 'instructor' && (
+                                  <>
+                                  {(horario.tipo === 'CLASE' || horario.tipo === 'APOYO' || horario.tipo == 'RESERVA') && (
+  <p className="text-[10px] font-bold text-[#2012eb] truncate leading-tight">
+    {horario.tipo === 'CLASE' ? `📚 ${horario.apoyo?.toUpperCase()}` :  `📚 ${horario.tipo}`}
+  </p>
+)}
+                                    {/* 2. FICHA - Siempre visible si existe */}
+                                    {horario.ficha_numero && (
+                                      <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
+                                        📋 Ficha {horario.ficha_numero}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 3. AMBIENTE - Si hay espacio */}
+                                    {height >= 45 && horario.ambiente_nombre && (
+                                      <div className="flex items-center gap-0.5 text-[9px] text-gray-500">
+                                        <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+                                        <span className="truncate">{horario.ambiente_codigo || horario.ambiente_nombre}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* 4. COMPETENCIA - Solo CLASE, si hay espacio */}
+                                    {height >= 60 && horario.tipo === 'CLASE' && horario.competencia_nombre && (
+                                      <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
+                                        {horario.competencia_nombre}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 5. RESULTADO - Solo CLASE, si hay espacio */}
+                                    {height >= 75 && horario.tipo === 'CLASE' && horario.resultado_nombre && horario.resultado_nombre !== 'N/A' && (
+                                      <p className="text-[8px] text-gray-600 truncate">
+                                        {horario.resultado_nombre}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 6. HORARIO - Al final, si hay espacio */}
+                                    {height >= 90 && (
+                                      <div className="flex items-center gap-0.5 text-[9px] text-gray-400 mt-auto">
+                                        <Clock className="h-2.5 w-2.5 flex-shrink-0" />
+                                        <span className="truncate">{horario.hora_inicio.substring(0, 5)}</span>
+                                      </div>
+                                    )}
+                                  </>
                                 )}
                                 
-                                {/* Ambiente - Solo si hay espacio */}
-                                {height >= 60 && horario.ambiente_nombre && (
-                                  <div className="flex items-center gap-0.5 text-[9px] text-gray-500">
-                                    <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
-                                    <span className="truncate">{horario.ambiente_codigo || horario.ambiente_nombre}</span>
-                                  </div>
-                                )}
-                                
-                                {/* Horario - Siempre al final si hay espacio */}
-                                {height >= 35 && (
-                                  <div className="flex items-center gap-0.5 text-[9px] text-gray-400 mt-auto">
-                                    <Clock className="h-2.5 w-2.5 flex-shrink-0" />
-                                    <span className="truncate">{horario.hora_inicio.substring(0, 5)}</span>
-                                  </div>
+                                {/* ==================== MODO AMBIENTE ==================== */}
+                                {filterMode === 'ambiente' && (
+                                  <>
+                                    {/* 1. TIPO - Siempre visible con color según tipo */}
+                                    <p className="text-[10px] font-semibold truncate leading-tight"
+                                       style={{ color: getTipoColor(horario.tipo) }}>
+                                      {horario.tipo}
+                                    </p>
+                                    
+                                    {/* 2. APOYO - Si es tipo APOYO, con estilo destacado */}
+                                    {height >= 28 && horario.tipo === 'APOYO' && horario.apoyo && (
+                                      <p className="text-[10px] font-bold text-[#2012eb] truncate leading-tight">
+                                        📚 {horario.apoyo}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 3. INSTRUCTOR - Si hay espacio */}
+                                    {height >= 43 && horario.instructor_nombre && (
+                                      <div className="flex items-center gap-0.5 text-[9px] text-gray-600">
+                                        <Users className="h-2.5 w-2.5 flex-shrink-0" />
+                                        <span className="truncate">{horario.instructor_nombre}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* 4. FICHA - Si hay espacio */}
+                                    {height >= 58 && horario.ficha_numero && (
+                                      <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
+                                        📋 Ficha {horario.ficha_numero}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 5. COMPETENCIA - Solo CLASE, si hay espacio */}
+                                    {height >= 73 && horario.tipo === 'CLASE' && horario.competencia_nombre && (
+                                      <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
+                                        {horario.competencia_nombre}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 6. RESULTADO - Solo CLASE, si hay espacio */}
+                                    {height >= 88 && horario.tipo === 'CLASE' && horario.resultado_nombre && horario.resultado_nombre !== 'N/A' && (
+                                      <p className="text-[8px] text-gray-600 truncate">
+                                        {horario.resultado_nombre}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 7. HORARIO - Al final, si hay espacio */}
+                                    {height >= 103 && (
+                                      <div className="flex items-center gap-0.5 text-[9px] text-gray-400 mt-auto">
+                                        <Clock className="h-2.5 w-2.5 flex-shrink-0" />
+                                        <span className="truncate">{horario.hora_inicio.substring(0, 5)}</span>
+                                      </div>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </div>

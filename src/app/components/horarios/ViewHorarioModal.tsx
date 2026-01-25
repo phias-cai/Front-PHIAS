@@ -8,6 +8,7 @@ interface ViewHorarioModalProps {
   open: boolean;
   onClose: () => void;
   horario: any | null;
+  getTipoColor: (tipo: string) => string;
   onEdit: (horario: any) => void;
   canManage: boolean;
 }
@@ -16,20 +17,12 @@ export function ViewHorarioModal({
   open,
   onClose,
   horario,
+  getTipoColor,
   onEdit,
   canManage,
 }: ViewHorarioModalProps) {
   
   if (!horario) return null;
-
-  const getTipoColor = (tipo: string) => {
-    switch (tipo) {
-      case 'CLASE': return '#39A900';
-      case 'APOYO': return '#00304D';
-      case 'RESERVA': return '#71277A';
-      default: return '#000000';
-    }
-  };
 
   const handleEdit = () => {
     onClose();
@@ -178,7 +171,7 @@ export function ViewHorarioModal({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <p className="pl-6 line-clamp-3 cursor-help text-sm">
+                          <p className="pl-6 line-clamp-2 cursor-help text-sm">
                             {horario.resultado_nombre}
                           </p>
                         </TooltipTrigger>
@@ -187,16 +180,6 @@ export function ViewHorarioModal({
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                  </div>
-                )}
-
-                {horario.apoyo && (
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-[#00304D] flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Apoyo (Materia/Tema)
-                    </h3>
-                    <p className="pl-6">{horario.apoyo}</p>
                   </div>
                 )}
               </>
@@ -235,7 +218,7 @@ export function ViewHorarioModal({
           </div>
         </div>
 
-        {/* FOOTER FIJO */}
+        {/* FOOTER FIJO CON BOTÓN EDITAR */}
         <DialogFooter className="flex-shrink-0 border-t pt-4 flex gap-2">
           <Button variant="outline" onClick={onClose}>
             Cerrar
