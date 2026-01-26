@@ -25,7 +25,7 @@ export function Footer() {
               className="flex items-center gap-2 hover:text-white transition-colors"
             >
               <Phone className="h-4 w-4" />
-              <span>(+57) 606 872 7272</span>
+              <span>(+57) 68748444</span>
             </a>
             <a 
               href="mailto:cai@sena.edu.co" 
@@ -40,7 +40,7 @@ export function Footer() {
           <div className="text-xs text-gray-200 flex items-center gap-1">
             <span>Hecho con</span>
             <Heart className="h-3 w-3 text-red-400 fill-current" />
-            <span>© {new Date().getFullYear()} SENA</span>
+            <span>{new Date().getFullYear()} SENA</span>
           </div>
         </div>
       </div>

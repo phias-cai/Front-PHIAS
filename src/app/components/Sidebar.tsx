@@ -56,9 +56,9 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
         {!isCollapsed ? (
           <div className="flex items-center gap-3">
             {/* Logo SENA PNG */}
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-lg">
+            <div className="w-12 h-12 bg-[#00304D] rounded-xl flex items-center justify-center p-1.5 shadow-lg">
               <img 
-                src="/sena.png" 
+                src="/phias.png" 
                 alt="SENA" 
                 className="w-full h-full object-contain"
               />
@@ -72,9 +72,9 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
           </div>
         ) : (
           <div className="flex justify-center">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-lg">
+            <div className="w-12 h-12 bg-[#00304D]  rounded-xl flex items-center justify-center p-1.5 shadow-lg">
               <img 
-                src="/sena.png" 
+                src="/phias.png" 
                 alt="SENA" 
                 className="w-full h-full object-contain"
               />
@@ -186,14 +186,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
         )}
       </div>
 
-      {/* Footer minimalista */}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-white/10">
-          <p className="text-center text-xs text-gray-400">
-            SENA © {new Date().getFullYear()}
-          </p>
-        </div>
-      )}
+    
     </div>
   );
 }

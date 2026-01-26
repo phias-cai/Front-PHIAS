@@ -562,7 +562,14 @@ export function Competencies() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-3">
+     <img 
+      src="/phias.png" 
+      alt="PHIAS Logo" 
+      className="h-12 w-auto relative z-10"
+    />
           <h1 className="text-3xl font-bold text-[#00304D]">Competencias</h1>
+          </div>
           <p className="text-gray-600 mt-1">Gestión de competencias y resultados de aprendizaje</p>
         </div>
         

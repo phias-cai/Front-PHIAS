@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Lock, Mail, AlertCircle, Loader2, KeyRound } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
+
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -75,30 +76,34 @@ export function Login() {
       {/* Contenido */}
       <div className="relative z-10 w-full max-w-md">
         {/* Logo SENA arriba */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-2xl">
-            <img 
-              src="/sena.png" 
-              alt="SENA Logo" 
-              className="h-20 w-auto"
-            />
-          </div>
-        </div>
+        
 
         {/* Card de Login con Glassmorphism */}
         <Card className="bg-white/95 backdrop-blur-md border-white/20 shadow-2xl">
           <CardHeader className="space-y-3 text-center pb-4">
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-[#00304D] to-[#39A900] bg-clip-text text-transparent">
-              PHIAS
-            </CardTitle>
-            <CardDescription className="text-base text-gray-700">
-              Sistema de Programación de Horarios
-              <br />
-              <span className="text-sm text-[#39A900] font-semibold">
-                Centro de Automatización Industrial - Manizales
-              </span>
-            </CardDescription>
-          </CardHeader>
+  {/* Logo + Título en línea */}
+  <div className="flex items-center justify-center gap-3">
+    <div className="relative inline-block">
+  <div className="absolute inset-0 bg-[#39A900]/30 blur-md rounded-full"></div>
+  <img 
+    src="/phias.png" 
+    alt="PHIAS Logo" 
+    className="h-12 w-auto relative z-10"
+  />
+</div>
+    <CardTitle className="text-4xl font-bold bg-gradient-to-r from-[#00304D] to-[#39A900] bg-clip-text text-transparent">
+      PHIAS
+    </CardTitle>
+  </div>
+  
+  <CardDescription className="text-base text-gray-950">
+    Programador Horarios Instructores Ambientes SENA
+    <br />
+    <span className="text-sm text-[#39A900] font-semibold">
+      Centro de Automatización Industrial - Manizales
+    </span>
+  </CardDescription>
+</CardHeader>
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -189,7 +194,7 @@ export function Login() {
         {/* Footer con copyright */}
         <div className="mt-6 text-center">
           <p className="text-sm text-white/90 drop-shadow-lg">
-            © {new Date().getFullYear()} SENA - Servicio Nacional de Aprendizaje
+            {new Date().getFullYear()} SENA - Servicio Nacional de Aprendizaje
           </p>
         </div>
       </div>
