@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Loader2, Plus, Download, Calendar as CalendarIcon, List, Upload } from "lucide-react";
+import { Loader2, Plus, Download, Calendar as CalendarIcon, List, Upload, Eye } from "lucide-react"; // ← Eye agregado
 import { useAuth } from "../contexts/AuthContext";
 import { HorariosFilters } from "./horarios/HorariosFilters";
 import { CreateHorarioModal } from "./horarios/CreateHorarioModal";
@@ -66,6 +66,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
   
   // Vista
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
+  const [showInactive, setShowInactive] = useState(false); // ← NUEVO: Estado para toggle
   
   // Filtros
   const [filterMode, setFilterMode] = useState<FilterMode>('ficha');
@@ -87,11 +88,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
   const [ambientes, setAmbientes] = useState<any[]>([]);
   const [programaNombre, setProgramaNombre] = useState<string>('');
 
-  // ============================================
-  // 🔥 CORRECCIÓN DEL ERROR - AGREGAR ESTA LÍNEA
-  // ============================================
   const canManageHorarios = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
-  // ============================================
 
   useEffect(() => {
     loadFilterOptions();
@@ -217,18 +214,14 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
         return;
       }
 
-      console.log('🔍 Llamando RPC:', rpcFunction, rpcParams);
-
       const { data, error } = await supabase.rpc(rpcFunction, rpcParams);
 
       if (error) {
-        console.error('❌ Error en RPC:', error);
+        console.error('Error en RPC:', error);
         throw error;
       }
 
       const response = typeof data === 'string' ? JSON.parse(data) : data;
-      
-      console.log('📦 Respuesta del RPC:', response);
 
       if (response.success) {
         let horariosData = [];
@@ -239,29 +232,13 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           horariosData = response.data || [];
         }
 
-        console.log('✅ Horarios procesados:', {
-          total: horariosData.length,
-          filterMode,
-          horarios: horariosData
-        });
-
-        // 🔍 DEBUG: Verificar fechas
-        horariosData.forEach((h: any) => {
-          console.log(`Horario ${h.id}:`, {
-            fecha_inicio: h.fecha_inicio,
-            fecha_fin: h.fecha_fin,
-            fecha_inicio_type: typeof h.fecha_inicio,
-            fecha_fin_type: typeof h.fecha_fin
-          });
-        });
-
         setHorarios(horariosData);
       } else {
-        console.error('❌ Error en respuesta:', response.error);
+        console.error('Error en respuesta:', response.error);
         setHorarios([]);
       }
     } catch (error) {
-      console.error('❌ Error loading horarios:', error);
+      console.error('Error loading horarios:', error);
       setHorarios([]);
     } finally {
       setLoading(false);
@@ -279,14 +256,18 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
 
   const diasSemana = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
   
+  // ✅ MODIFICADO: Filtrar por is_active según el toggle
   const horariosAgrupados = diasSemana.map(dia => ({
     dia,
-    horarios: horarios.filter(h => h.dia_semana === dia)
+    horarios: horarios
+      .filter(h => h.dia_semana === dia)
+      .filter(h => showInactive || h.is_active) // ← NUEVO: Filtro de activos
   }));
 
   const totalHorasInstructor = filterMode === 'instructor' 
     ? horarios
         .filter(h => h.tipo !== 'RESERVA')
+        .filter(h => showInactive || h.is_active) // ← NUEVO: También filtrar en totales
         .reduce((sum, h) => sum + h.horas_semanales, 0)
     : 0;
 
@@ -299,6 +280,9 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
     setSelectedHorario(horario);
     setEditModalOpen(true);
   };
+
+  // ✅ NUEVO: Contador de inactivos
+  const inactivosCount = horarios.filter(h => !h.is_active).length;
 
   return (
     <div className="min-h-screen relative">
@@ -316,24 +300,22 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
       <div className="relative space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-        <div>
-  <div className="flex items-center gap-3">
-     <img 
-      src="/phias.png" 
-      alt="PHIAS Logo" 
-      className="h-12 w-auto relative z-10"
-    />
-    <h1 className="text-3xl font-bold text-[#00304D]">
-      Gestión de Horarios
-    </h1>
+          <div>
+            <div className="flex items-center gap-3">
+              <img 
+                src="/phias.png" 
+                alt="PHIAS Logo" 
+                className="h-12 w-auto relative z-10"
+              />
+              <h1 className="text-3xl font-bold text-[#00304D]">
+                Gestión de Horarios
+              </h1>
+            </div>
 
-   
-  </div>
-
-  <p className="text-gray-600 mt-1">
-    Administración de horarios de clases, apoyos y reservas
-  </p>
-</div>
+            <p className="text-gray-600 mt-1">
+              Administración de horarios de clases, apoyos y reservas
+            </p>
+          </div>
           
           <div className="flex gap-2">
             {/* Toggle Vista */}
@@ -357,6 +339,22 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
                 Lista
               </Button>
             </div>
+
+            {/* ✅ NUEVO: Toggle Mostrar Inactivos */}
+            {canManageHorarios && (
+              <Button
+                variant={showInactive ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowInactive(!showInactive)}
+                className={showInactive ? 'bg-gray-600 hover:bg-gray-700' : ''}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {showInactive 
+                  ? 'Ocultar Inactivos' 
+                  : `Mostrar Inactivos${inactivosCount > 0 ? ` (${inactivosCount})` : ''}`
+                }
+              </Button>
+            )}
 
             {/* Botón Exportar (Admin/Coordinador y con filtro seleccionado) */}
             {canManageHorarios && (selectedFicha || selectedInstructor || selectedAmbiente) && (
@@ -422,7 +420,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
             <Card>
               <CardContent className="p-6">
                 <div className="text-2xl font-bold text-[#00304D]">
-                  {horarios.filter(h => h.tipo === 'CLASE').length}
+                  {horarios.filter(h => h.tipo === 'CLASE' && (showInactive || h.is_active)).length}
                 </div>
                 <p className="text-sm text-gray-600">Clases</p>
               </CardContent>
@@ -430,7 +428,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
             <Card>
               <CardContent className="p-6">
                 <div className="text-2xl font-bold text-[#007832]">
-                  {horarios.filter(h => h.tipo === 'APOYO').length}
+                  {horarios.filter(h => h.tipo === 'APOYO' && (showInactive || h.is_active)).length}
                 </div>
                 <p className="text-sm text-gray-600">Apoyos</p>
               </CardContent>
@@ -438,7 +436,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
             <Card>
               <CardContent className="p-6">
                 <div className="text-2xl font-bold text-[#71277A]">
-                  {horarios.filter(h => h.tipo === 'RESERVA').length}
+                  {horarios.filter(h => h.tipo === 'RESERVA' && (showInactive || h.is_active)).length}
                 </div>
                 <p className="text-sm text-gray-600">Reservas</p>
               </CardContent>
@@ -467,7 +465,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           <MonthSelector
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
-            horarios={horarios}
+            horarios={horarios.filter(h => showInactive || h.is_active)}
             instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
           />
         )}
@@ -477,12 +475,12 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-[#39A900]" />
           </div>
-        ) : horarios.length === 0 ? (
+        ) : horarios.filter(h => showInactive || h.is_active).length === 0 ? (
           <Card>
             <CardContent className="py-8">
               <div className="text-center text-gray-500">
                 <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No hay horarios registrados</p>
+                <p>No hay horarios {showInactive ? '' : 'activos'} registrados</p>
                 <p className="text-sm mt-2">
                   {filterMode === 'instructor' && 'Selecciona un instructor para ver sus horarios'}
                   {filterMode === 'ficha' && 'Selecciona una ficha para ver sus horarios'}
@@ -495,7 +493,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           <>
             {viewMode === 'calendar' ? (
               <CalendarView
-                horarios={horarios}
+                horarios={showInactive ? horarios : horarios.filter(h => h.is_active)} // ← MODIFICADO
                 getTipoColor={getTipoColor}
                 onView={handleViewHorario}
                 filterMode={filterMode}
@@ -513,9 +511,12 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
                           <HorarioCard
                             key={horario.id}
                             horario={horario}
+                            filterMode={filterMode}
                             getTipoColor={getTipoColor}
+                            canManage={canManageHorarios}
+                            onUpdate={loadHorarios}
                             onView={handleViewHorario}
-                            onEdit={canManageHorarios ? handleEditHorario : undefined}
+                            onEdit={handleEditHorario}
                           />
                         ))}
                       </div>
