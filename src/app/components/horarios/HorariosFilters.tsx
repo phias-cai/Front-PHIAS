@@ -16,6 +16,8 @@ interface HorariosFiltersProps {
   fichas: any[];
   instructores: any[];
   ambientes: any[];
+  userRole?: string;
+  isAprendizUser?: boolean; // ← NUEVO: Flag para restricción
 }
 
 export function HorariosFilters({
@@ -30,6 +32,8 @@ export function HorariosFilters({
   fichas,
   instructores,
   ambientes,
+  userRole,
+  isAprendizUser = false, // ← NUEVO: Por defecto false
 }: HorariosFiltersProps) {
   
   const handleModeChange = (mode: 'ficha' | 'instructor' | 'ambiente') => {
@@ -54,14 +58,19 @@ export function HorariosFilters({
               <BookOpen className="h-4 w-4 mr-2" />
               Por Ficha
             </Button>
-            <Button
-              variant={filterMode === 'instructor' ? 'default' : 'outline'}
-              onClick={() => handleModeChange('instructor')}
-              className={filterMode === 'instructor' ? 'bg-[#39A900] hover:bg-[#2d8000]' : ''}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Por Instructor
-            </Button>
+            
+            {/* ✅ RESTRICCIÓN: Ocultar botón "Por Instructor" para aprendiz@sena.edu.co */}
+            {!isAprendizUser && (
+              <Button
+                variant={filterMode === 'instructor' ? 'default' : 'outline'}
+                onClick={() => handleModeChange('instructor')}
+                className={filterMode === 'instructor' ? 'bg-[#39A900] hover:bg-[#2d8000]' : ''}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Por Instructor
+              </Button>
+            )}
+            
             <Button
               variant={filterMode === 'ambiente' ? 'default' : 'outline'}
               onClick={() => handleModeChange('ambiente')}
@@ -89,7 +98,7 @@ export function HorariosFilters({
               </Select>
             )}
 
-            {filterMode === 'instructor' && (
+            {filterMode === 'instructor' && !isAprendizUser && (
               <Select value={selectedInstructor} onValueChange={setSelectedInstructor}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un instructor" />

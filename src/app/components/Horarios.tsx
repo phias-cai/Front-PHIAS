@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Loader2, Plus, Download, Calendar as CalendarIcon, List, Upload, Eye } from "lucide-react"; // ← Eye agregado
+import { Loader2, Plus, Download, Calendar as CalendarIcon, List, Upload, Eye } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { HorariosFilters } from "./horarios/HorariosFilters";
 import { CreateHorarioModal } from "./horarios/CreateHorarioModal";
@@ -64,9 +64,9 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
   const [uploadMassiveInstructorModalOpen, setUploadMassiveInstructorModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   
-  // Vista
+  // ✅ Vista por defecto: CALENDARIO (para aprendiz)
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
-  const [showInactive, setShowInactive] = useState(false); // ← NUEVO: Estado para toggle
+  const [showInactive, setShowInactive] = useState(false);
   
   // Filtros
   const [filterMode, setFilterMode] = useState<FilterMode>('ficha');
@@ -90,6 +90,9 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
 
   const canManageHorarios = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
+  // ✅ NUEVO: Verificar si es el usuario aprendiz específico
+  const isAprendizUser = currentUser?.email === 'aprendices@sena.edu.co';
+
   useEffect(() => {
     loadFilterOptions();
   }, []);
@@ -104,10 +107,13 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
       setFilterMode("ficha");
       setSelectedFicha(navigationData.fichaId);
     } else if (navigationData?.instructorId) {
-      setFilterMode("instructor");
-      setSelectedInstructor(navigationData.instructorId);
+      // ✅ RESTRICCIÓN: Si es aprendiz, ignorar navegación a instructor
+      if (!isAprendizUser) {
+        setFilterMode("instructor");
+        setSelectedInstructor(navigationData.instructorId);
+      }
     }
-  }, [navigationData]);
+  }, [navigationData, isAprendizUser]);
 
   // ✅ AUTO-SELECCIÓN: Si es instructor, seleccionarlo automáticamente en modo instructor
   useEffect(() => {
@@ -116,7 +122,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
     }
   }, [currentUser, filterMode, selectedInstructor]);
 
-  // ⬅️ NUEVO: Cargar nombre del programa cuando se selecciona ficha
+  // Cargar nombre del programa cuando se selecciona ficha
   useEffect(() => {
     if (selectedFicha) {
       const loadProgramaNombre = async () => {
@@ -256,18 +262,17 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
 
   const diasSemana = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
   
-  // ✅ MODIFICADO: Filtrar por is_active según el toggle
   const horariosAgrupados = diasSemana.map(dia => ({
     dia,
     horarios: horarios
       .filter(h => h.dia_semana === dia)
-      .filter(h => showInactive || h.is_active) // ← NUEVO: Filtro de activos
+      .filter(h => showInactive || h.is_active)
   }));
 
   const totalHorasInstructor = filterMode === 'instructor' 
     ? horarios
         .filter(h => h.tipo !== 'RESERVA')
-        .filter(h => showInactive || h.is_active) // ← NUEVO: También filtrar en totales
+        .filter(h => showInactive || h.is_active)
         .reduce((sum, h) => sum + h.horas_semanales, 0)
     : 0;
 
@@ -281,7 +286,6 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
     setEditModalOpen(true);
   };
 
-  // ✅ NUEVO: Contador de inactivos
   const inactivosCount = horarios.filter(h => !h.is_active).length;
 
   return (
@@ -318,29 +322,31 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           </div>
           
           <div className="flex gap-2">
-            {/* Toggle Vista */}
-            <div className="flex border rounded-lg overflow-hidden">
-              <Button
-                variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('calendar')}
-                className="rounded-none"
-              >
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                Calendario
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="rounded-none"
-              >
-                <List className="h-4 w-4 mr-2" />
-                Lista
-              </Button>
-            </div>
+            {/* ✅ RESTRICCIÓN: Ocultar toggle de vista para aprendices@sena.edu.co */}
+            {!isAprendizUser && (
+              <div className="flex border rounded-lg overflow-hidden">
+                <Button
+                  variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('calendar')}
+                  className="rounded-none"
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  Calendario
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-none"
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  Lista
+                </Button>
+              </div>
+            )}
 
-            {/* ✅ NUEVO: Toggle Mostrar Inactivos */}
+            {/* Toggle Mostrar Inactivos */}
             {canManageHorarios && (
               <Button
                 variant={showInactive ? 'default' : 'outline'}
@@ -407,7 +413,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
         </div>
 
         {/* Stats Cards (Solo para instructor) */}
-        {filterMode === 'instructor' && selectedInstructor && (
+        {filterMode === 'instructor' && selectedInstructor && !isAprendizUser && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-6">
@@ -458,10 +464,11 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           instructores={instructores}
           ambientes={ambientes}
           userRole={currentUser?.role}
+          isAprendizUser={isAprendizUser} // ← NUEVO: Pasar flag
         />
 
         {/* Selector de Mes (Solo para instructor en vista lista) */}
-        {filterMode === 'instructor' && selectedInstructor && viewMode === 'list' && (
+        {filterMode === 'instructor' && selectedInstructor && viewMode === 'list' && !isAprendizUser && (
           <MonthSelector
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
@@ -491,9 +498,10 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           </Card>
         ) : (
           <>
-            {viewMode === 'calendar' ? (
+            {/* ✅ Para aprendiz: SIEMPRE calendario. Para otros: respeta viewMode */}
+            {(isAprendizUser || viewMode === 'calendar') ? (
               <CalendarView
-                horarios={showInactive ? horarios : horarios.filter(h => h.is_active)} // ← MODIFICADO
+                horarios={showInactive ? horarios : horarios.filter(h => h.is_active)}
                 getTipoColor={getTipoColor}
                 onView={handleViewHorario}
                 filterMode={filterMode}
