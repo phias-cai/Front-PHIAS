@@ -174,7 +174,7 @@ export function Home({ onNavigate }: HomeProps) {
             </div>
             
             <p className="text-lg md:text-xl text-white font-semibold max-w-3xl mx-auto drop-shadow-lg">
-              Centro de Automatización Industrial - Bogota
+              Centro de Automatización Industrial - Manizales
             </p>
           </div>
         </div>
