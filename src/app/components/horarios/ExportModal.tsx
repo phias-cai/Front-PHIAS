@@ -254,7 +254,7 @@ export function ExportModal({
         'Hora Inicio': h.hora_inicio.substring(0, 5),
         'Hora Fin': h.hora_fin.substring(0, 5),
         'Tipo': h.tipo,
-        'Horas Semanales': h.tipo === 'RESERVA' ? '0.0 (no cuenta)' : h.horas_semanales.toFixed(1),
+        'Horas Semanales': h.tipo === 'RESERVA' ? 0 : Math.round(h.horas_semanales),
         'Ambiente': h.ambiente_codigo || h.ambiente_nombre || '-',
         'Ficha': h.ficha_numero ? `Ficha ${h.ficha_numero}` : '-',
         'Competencia': h.competencia_nombre || '-',
@@ -287,7 +287,7 @@ export function ExportModal({
         'Hora Inicio': h.hora_inicio.substring(0, 5),
         'Hora Fin': h.hora_fin.substring(0, 5),
         'Tipo': h.tipo,
-        'Horas Semanales': h.horas_semanales.toFixed(1),
+        'Horas Semanales': Math.round(h.horas_semanales),
         'Instructor': h.instructor_nombre || '-',
         'Ambiente': h.ambiente_codigo || h.ambiente_nombre || '-',
         'Competencia': h.competencia_nombre || '-',
@@ -297,6 +297,43 @@ export function ExportModal({
         'Fecha Fin': new Date(h.fecha_fin).toLocaleDateString('es-CO'),
         'Observaciones': h.observaciones || ''
       }));
+
+      // Fila separadora + fila de TOTAL horas programadas en la ficha
+      const totalHorasFicha = horarios
+        .filter(h => h.tipo !== 'RESERVA')
+        .reduce((sum, h) => sum + Math.round(h.horas_semanales), 0);
+
+      excelData.push({
+        'Día': '',
+        'Hora Inicio': '',
+        'Hora Fin': '',
+        'Tipo': '',
+        'Horas Semanales': '',
+        'Instructor': '',
+        'Ambiente': '',
+        'Competencia': '',
+        'Resultado': '',
+        'Apoyo/Tema': '',
+        'Fecha Inicio': '',
+        'Fecha Fin': '',
+        'Observaciones': ''
+      });
+
+      excelData.push({
+        'Día': 'TOTAL HORAS PROGRAMADAS',
+        'Hora Inicio': '',
+        'Hora Fin': '',
+        'Tipo': '',
+        'Horas Semanales': totalHorasFicha,
+        'Instructor': '',
+        'Ambiente': '',
+        'Competencia': '',
+        'Resultado': '',
+        'Apoyo/Tema': '',
+        'Fecha Inicio': '',
+        'Fecha Fin': '',
+        'Observaciones': '(excluye RESERVAS)'
+      });
       
     } else { // ambiente
       headers = [
@@ -356,9 +393,9 @@ export function ExportModal({
           { 'Campo': 'Período', 'Valor': `${new Date(fechaInicio).toLocaleDateString('es-CO')} - ${new Date(fechaFin).toLocaleDateString('es-CO')}` },
           { 'Campo': '', 'Valor': '' },
           { 'Campo': 'HORAS SEMANALES', 'Valor': '' },
-          { 'Campo': 'Clases', 'Valor': `${instructorInfo.total_horas_clase.toFixed(1)} horas` },
-          { 'Campo': 'Apoyos', 'Valor': `${instructorInfo.total_horas_apoyo.toFixed(1)} horas` },
-          { 'Campo': 'TOTAL', 'Valor': `${instructorInfo.total_horas.toFixed(1)} horas` },
+          { 'Campo': 'Clases', 'Valor': `${Math.round(instructorInfo.total_horas_clase)} horas` },
+          { 'Campo': 'Apoyos', 'Valor': `${Math.round(instructorInfo.total_horas_apoyo)} horas` },
+          { 'Campo': 'TOTAL', 'Valor': `${Math.round(instructorInfo.total_horas)} horas` },
           { 'Campo': '', 'Valor': '' }
         );
       }
@@ -387,7 +424,7 @@ export function ExportModal({
         
         resumenData.push({
           'Campo': dia,
-          'Valor': `${horariosDia.length} horarios (${horasDia.toFixed(1)}h)`
+          'Valor': `${horariosDia.length} horarios (${Math.round(horasDia)}h)`
         });
       });
       
