@@ -113,18 +113,35 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
     setCurrentWeekBounds({ start, end });
   }, []);
 
-  // ✅ FIX: horarios filtrados por la semana visible (solo en modo calendario)
-  const horariosEnSemanaActual = (() => {
-    if (!currentWeekBounds || viewMode !== 'calendar') return horarios;
-    return horarios.filter(h => {
-      const fi = parseLocalDate(h.fecha_inicio);
-      const ff = parseLocalDate(h.fecha_fin);
-      if (!fi || !ff) return false;
-      return fi <= currentWeekBounds.end && ff >= currentWeekBounds.start;
-    });
+  // Semana de hoy (lunes-sábado), usada como referencia en vista lista
+  const todayWeek = (() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const day = today.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const start = new Date(today);
+    start.setDate(today.getDate() + diff);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 5);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
   })();
 
-  // ✅ FIX: stats ahora reflejan solo la semana visible
+  // En calendario usa la semana visible; en lista usa la semana de hoy
+  // Esto evita sumar horarios vencidos o aún no iniciados
+  const weekBoundsForStats = (viewMode === 'calendar' && currentWeekBounds)
+    ? currentWeekBounds
+    : todayWeek;
+
+  // ✅ FIX: filtra por vigencia en la semana correcta (visible o actual)
+  const horariosEnSemanaActual = horarios.filter(h => {
+    const fi = parseLocalDate(h.fecha_inicio);
+    const ff = parseLocalDate(h.fecha_fin);
+    if (!fi || !ff) return false;
+    return fi <= weekBoundsForStats.end && ff >= weekBoundsForStats.start;
+  });
+
+  // ✅ FIX: horas semanales solo de los horarios vigentes en ese rango
   const totalHorasInstructor = filterMode === 'instructor'
     ? horariosEnSemanaActual
         .filter(h => h.tipo !== 'RESERVA' && h.is_active)
@@ -425,7 +442,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
                   {totalHorasInstructor.toFixed(1)}
                 </div>
                 <p className="text-sm text-gray-600">
-                  {viewMode === 'calendar' ? 'Horas esta semana' : 'Horas Semanales'}
+                  {viewMode === 'calendar' ? 'Horas esta semana' : 'Horas sem. actual'}
                 </p>
               </CardContent>
             </Card>
@@ -524,9 +541,12 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
                           <HorarioCard
                             key={horario.id}
                             horario={horario}
+                            filterMode={filterMode}
                             getTipoColor={getTipoColor}
+                            canManage={canManageHorarios}
+                            onUpdate={loadHorarios}
                             onView={handleViewHorario}
-                            onEdit={canManageHorarios ? handleEditHorario : undefined}
+                            onEdit={handleEditHorario}
                           />
                         ))}
                       </div>
@@ -560,6 +580,8 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
         }}
         horario={selectedHorario}
         getTipoColor={getTipoColor}
+        onEdit={handleEditHorario}
+        canManage={canManageHorarios}
       />
 
       <EditHorarioModal
