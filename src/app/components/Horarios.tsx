@@ -1,9 +1,9 @@
 // src/app/components/Horarios.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Loader2, Plus, Download, Calendar as CalendarIcon, List, Upload, Eye } from "lucide-react";
+import { Loader2, Plus, Download, Calendar as CalendarIcon, List, Upload } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { HorariosFilters } from "./horarios/HorariosFilters";
 import { CreateHorarioModal } from "./horarios/CreateHorarioModal";
@@ -57,16 +57,34 @@ interface HorariosProps {
   } | null;
 }
 
+// ✅ Helper: parsea "YYYY-MM-DD" como fecha local para evitar desfase UTC en Colombia
+function parseLocalDate(dateString: string | null | undefined): Date | null {
+  if (!dateString) return null;
+  try {
+    const parts = dateString.split('T')[0].split('-');
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    const d = new Date(year, month - 1, day);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  } catch {
+    return null;
+  }
+}
+
 export function Horarios({ navigationData }: HorariosProps = {}) {
   const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [horarios, setHorarios] = useState<HorarioData[]>([]);
   const [uploadMassiveInstructorModalOpen, setUploadMassiveInstructorModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
+
+  // ✅ NUEVO: rango de la semana actualmente visible en el CalendarView
+  const [currentWeekBounds, setCurrentWeekBounds] = useState<{ start: Date; end: Date } | null>(null);
   
-  // ✅ Vista por defecto: CALENDARIO (para aprendiz)
+  // Vista
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
-  const [showInactive, setShowInactive] = useState(false);
   
   // Filtros
   const [filterMode, setFilterMode] = useState<FilterMode>('ficha');
@@ -90,8 +108,28 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
 
   const canManageHorarios = currentUser?.role === 'admin' || currentUser?.role === 'coordinador';
 
-  // ✅ NUEVO: Verificar si es el usuario aprendiz específico
-  const isAprendizUser = currentUser?.email === 'aprendices@sena.edu.co';
+  // ✅ NUEVO: callback para recibir la semana visible desde CalendarView
+  const handleWeekChange = useCallback((start: Date, end: Date) => {
+    setCurrentWeekBounds({ start, end });
+  }, []);
+
+  // ✅ FIX: horarios filtrados por la semana visible (solo en modo calendario)
+  const horariosEnSemanaActual = (() => {
+    if (!currentWeekBounds || viewMode !== 'calendar') return horarios;
+    return horarios.filter(h => {
+      const fi = parseLocalDate(h.fecha_inicio);
+      const ff = parseLocalDate(h.fecha_fin);
+      if (!fi || !ff) return false;
+      return fi <= currentWeekBounds.end && ff >= currentWeekBounds.start;
+    });
+  })();
+
+  // ✅ FIX: stats ahora reflejan solo la semana visible
+  const totalHorasInstructor = filterMode === 'instructor'
+    ? horariosEnSemanaActual
+        .filter(h => h.tipo !== 'RESERVA' && h.is_active)
+        .reduce((sum, h) => sum + h.horas_semanales, 0)
+    : 0;
 
   useEffect(() => {
     loadFilterOptions();
@@ -107,13 +145,10 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
       setFilterMode("ficha");
       setSelectedFicha(navigationData.fichaId);
     } else if (navigationData?.instructorId) {
-      // ✅ RESTRICCIÓN: Si es aprendiz, ignorar navegación a instructor
-      if (!isAprendizUser) {
-        setFilterMode("instructor");
-        setSelectedInstructor(navigationData.instructorId);
-      }
+      setFilterMode("instructor");
+      setSelectedInstructor(navigationData.instructorId);
     }
-  }, [navigationData, isAprendizUser]);
+  }, [navigationData]);
 
   // ✅ AUTO-SELECCIÓN: Si es instructor, seleccionarlo automáticamente en modo instructor
   useEffect(() => {
@@ -165,13 +200,11 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
       // ✅ PERMISOS: Si es instructor, solo mostrar su propio perfil
       let instructoresData;
       if (currentUser?.role === 'instructor') {
-        // Instructor solo ve su propio perfil
         instructoresData = [{
           id: currentUser.id,
           nombres: currentUser.name
         }];
       } else {
-        // Admin/Coordinador ven todos los instructores
         const { data } = await supabase
           .from('profiles')
           .select('id, nombres')
@@ -220,14 +253,18 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
         return;
       }
 
+      console.log('🔍 Llamando RPC:', rpcFunction, rpcParams);
+
       const { data, error } = await supabase.rpc(rpcFunction, rpcParams);
 
       if (error) {
-        console.error('Error en RPC:', error);
+        console.error('❌ Error en RPC:', error);
         throw error;
       }
 
       const response = typeof data === 'string' ? JSON.parse(data) : data;
+      
+      console.log('📦 Respuesta del RPC:', response);
 
       if (response.success) {
         let horariosData = [];
@@ -238,13 +275,19 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           horariosData = response.data || [];
         }
 
+        console.log('✅ Horarios procesados:', {
+          total: horariosData.length,
+          filterMode,
+          horarios: horariosData
+        });
+
         setHorarios(horariosData);
       } else {
-        console.error('Error en respuesta:', response.error);
+        console.error('❌ Error en respuesta:', response.error);
         setHorarios([]);
       }
     } catch (error) {
-      console.error('Error loading horarios:', error);
+      console.error('❌ Error loading horarios:', error);
       setHorarios([]);
     } finally {
       setLoading(false);
@@ -264,17 +307,8 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
   
   const horariosAgrupados = diasSemana.map(dia => ({
     dia,
-    horarios: horarios
-      .filter(h => h.dia_semana === dia)
-      .filter(h => showInactive || h.is_active)
+    horarios: horarios.filter(h => h.dia_semana === dia)
   }));
-
-  const totalHorasInstructor = filterMode === 'instructor' 
-    ? horarios
-        .filter(h => h.tipo !== 'RESERVA')
-        .filter(h => showInactive || h.is_active)
-        .reduce((sum, h) => sum + h.horas_semanales, 0)
-    : 0;
 
   const handleViewHorario = (horario: HorarioData) => {
     setSelectedHorario(horario);
@@ -285,8 +319,6 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
     setSelectedHorario(horario);
     setEditModalOpen(true);
   };
-
-  const inactivosCount = horarios.filter(h => !h.is_active).length;
 
   return (
     <div className="min-h-screen relative">
@@ -305,64 +337,36 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <img 
-                src="/phias.png" 
-                alt="PHIAS Logo" 
-                className="h-12 w-auto relative z-10"
-              />
-              <h1 className="text-3xl font-bold text-[#00304D]">
-                Gestión de Horarios
-              </h1>
-            </div>
-
+            <h1 className="text-3xl font-bold text-[#00304D]">Gestión de Horarios</h1>
             <p className="text-gray-600 mt-1">
               Administración de horarios de clases, apoyos y reservas
             </p>
           </div>
           
           <div className="flex gap-2">
-            {/* ✅ RESTRICCIÓN: Ocultar toggle de vista para aprendices@sena.edu.co */}
-            {!isAprendizUser && (
-              <div className="flex border rounded-lg overflow-hidden">
-                <Button
-                  variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('calendar')}
-                  className="rounded-none"
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  Calendario
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-none"
-                >
-                  <List className="h-4 w-4 mr-2" />
-                  Lista
-                </Button>
-              </div>
-            )}
-
-            {/* Toggle Mostrar Inactivos */}
-            {canManageHorarios && (
+            {/* Toggle Vista */}
+            <div className="flex border rounded-lg overflow-hidden">
               <Button
-                variant={showInactive ? 'default' : 'outline'}
+                variant={viewMode === 'calendar' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setShowInactive(!showInactive)}
-                className={showInactive ? 'bg-gray-600 hover:bg-gray-700' : ''}
+                onClick={() => setViewMode('calendar')}
+                className="rounded-none"
               >
-                <Eye className="h-4 w-4 mr-2" />
-                {showInactive 
-                  ? 'Ocultar Inactivos' 
-                  : `Mostrar Inactivos${inactivosCount > 0 ? ` (${inactivosCount})` : ''}`
-                }
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                Calendario
               </Button>
-            )}
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-none"
+              >
+                <List className="h-4 w-4 mr-2" />
+                Lista
+              </Button>
+            </div>
 
-            {/* Botón Exportar (Admin/Coordinador y con filtro seleccionado) */}
+            {/* Botón Exportar */}
             {canManageHorarios && (selectedFicha || selectedInstructor || selectedAmbiente) && (
               <Button
                 variant="outline"
@@ -413,20 +417,22 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
         </div>
 
         {/* Stats Cards (Solo para instructor) */}
-        {filterMode === 'instructor' && selectedInstructor && !isAprendizUser && (
+        {filterMode === 'instructor' && selectedInstructor && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-6">
                 <div className="text-2xl font-bold text-[#39A900]">
                   {totalHorasInstructor.toFixed(1)}
                 </div>
-                <p className="text-sm text-gray-600">Horas Semanales</p>
+                <p className="text-sm text-gray-600">
+                  {viewMode === 'calendar' ? 'Horas esta semana' : 'Horas Semanales'}
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6">
                 <div className="text-2xl font-bold text-[#00304D]">
-                  {horarios.filter(h => h.tipo === 'CLASE' && (showInactive || h.is_active)).length}
+                  {horariosEnSemanaActual.filter(h => h.tipo === 'CLASE').length}
                 </div>
                 <p className="text-sm text-gray-600">Clases</p>
               </CardContent>
@@ -434,7 +440,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
             <Card>
               <CardContent className="p-6">
                 <div className="text-2xl font-bold text-[#007832]">
-                  {horarios.filter(h => h.tipo === 'APOYO' && (showInactive || h.is_active)).length}
+                  {horariosEnSemanaActual.filter(h => h.tipo === 'APOYO').length}
                 </div>
                 <p className="text-sm text-gray-600">Apoyos</p>
               </CardContent>
@@ -442,7 +448,7 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
             <Card>
               <CardContent className="p-6">
                 <div className="text-2xl font-bold text-[#71277A]">
-                  {horarios.filter(h => h.tipo === 'RESERVA' && (showInactive || h.is_active)).length}
+                  {horariosEnSemanaActual.filter(h => h.tipo === 'RESERVA').length}
                 </div>
                 <p className="text-sm text-gray-600">Reservas</p>
               </CardContent>
@@ -464,15 +470,14 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           instructores={instructores}
           ambientes={ambientes}
           userRole={currentUser?.role}
-          isAprendizUser={isAprendizUser} // ← NUEVO: Pasar flag
         />
 
         {/* Selector de Mes (Solo para instructor en vista lista) */}
-        {filterMode === 'instructor' && selectedInstructor && viewMode === 'list' && !isAprendizUser && (
+        {filterMode === 'instructor' && selectedInstructor && viewMode === 'list' && (
           <MonthSelector
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
-            horarios={horarios.filter(h => showInactive || h.is_active)}
+            horarios={horarios}
             instructorNombre={instructores.find(i => i.id === selectedInstructor)?.nombres || ''}
           />
         )}
@@ -482,12 +487,12 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-[#39A900]" />
           </div>
-        ) : horarios.filter(h => showInactive || h.is_active).length === 0 ? (
+        ) : horarios.length === 0 ? (
           <Card>
             <CardContent className="py-8">
               <div className="text-center text-gray-500">
                 <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No hay horarios {showInactive ? '' : 'activos'} registrados</p>
+                <p>No hay horarios registrados</p>
                 <p className="text-sm mt-2">
                   {filterMode === 'instructor' && 'Selecciona un instructor para ver sus horarios'}
                   {filterMode === 'ficha' && 'Selecciona una ficha para ver sus horarios'}
@@ -498,13 +503,13 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
           </Card>
         ) : (
           <>
-            {/* ✅ Para aprendiz: SIEMPRE calendario. Para otros: respeta viewMode */}
-            {(isAprendizUser || viewMode === 'calendar') ? (
+            {viewMode === 'calendar' ? (
               <CalendarView
-                horarios={showInactive ? horarios : horarios.filter(h => h.is_active)}
+                horarios={horarios}
                 getTipoColor={getTipoColor}
                 onView={handleViewHorario}
                 filterMode={filterMode}
+                onWeekChange={handleWeekChange}
               />
             ) : (
               <div className="space-y-4">
@@ -519,12 +524,9 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
                           <HorarioCard
                             key={horario.id}
                             horario={horario}
-                            filterMode={filterMode}
                             getTipoColor={getTipoColor}
-                            canManage={canManageHorarios}
-                            onUpdate={loadHorarios}
                             onView={handleViewHorario}
-                            onEdit={handleEditHorario}
+                            onEdit={canManageHorarios ? handleEditHorario : undefined}
                           />
                         ))}
                       </div>
@@ -558,8 +560,6 @@ export function Horarios({ navigationData }: HorariosProps = {}) {
         }}
         horario={selectedHorario}
         getTipoColor={getTipoColor}
-        onEdit={handleEditHorario}
-        canManage={canManageHorarios}
       />
 
       <EditHorarioModal

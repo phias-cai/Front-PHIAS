@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Users } from "lucide-react";
-import { Badge } from "../ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 interface CalendarViewProps {
@@ -10,8 +9,9 @@ interface CalendarViewProps {
   getTipoColor: (tipo: string) => string;
   onView: (horario: any) => void;
   filterMode?: 'ficha' | 'instructor' | 'ambiente';
+  // ✅ NUEVO: notifica al padre qué semana está visible
+  onWeekChange?: (start: Date, end: Date) => void;
 }
-
 
 const diasSemana = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
 const mesesNombres = [
@@ -19,42 +19,40 @@ const mesesNombres = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
-// Generar array de años (5 años hacia adelante)
 function getYears() {
   const currentYear = new Date().getFullYear();
   return Array.from({ length: 5 }, (_, i) => currentYear + i);
 }
 
-// Función para parsear fechas de forma segura
-function parseDate(dateString: string | null | undefined): Date | null {
+// ✅ FIX TIMEZONE: parsea "YYYY-MM-DD" como fecha LOCAL
+// Problema original: new Date("2025-01-06") → UTC midnight → en Colombia (UTC-5)
+// se convierte a 2025-01-05 19:00, haciendo que el lunes 6 se trate como domingo 5
+function parseLocalDate(dateString: string | null | undefined): Date | null {
   if (!dateString) return null;
-  
   try {
-    const date = new Date(dateString);
-    
-    // Verificar si es válida
-    if (isNaN(date.getTime())) {
-      console.error('Fecha inválida:', dateString);
-      return null;
-    }
-    
-    return date;
-  } catch (error) {
-    console.error('Error parseando fecha:', dateString, error);
+    const parts = dateString.split('T')[0].split('-');
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    const d = new Date(year, month - 1, day); // constructor local, no UTC
+    d.setHours(0, 0, 0, 0);
+    return d;
+  } catch {
     return null;
   }
 }
 
-// Calcular semana para un mes/año específico
 function getWeekForDate(date: Date) {
   const startOfWeek = new Date(date);
   const day = startOfWeek.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // Ajustar al lunes
+  const diff = day === 0 ? -6 : 1 - day;
   startOfWeek.setDate(date.getDate() + diff);
-  
+  startOfWeek.setHours(0, 0, 0, 0);
+
   const weekEnd = new Date(startOfWeek);
-  weekEnd.setDate(startOfWeek.getDate() + 5); // Hasta sábado
-  
+  weekEnd.setDate(startOfWeek.getDate() + 5);
+  weekEnd.setHours(23, 59, 59, 999);
+
   return {
     start: startOfWeek,
     end: weekEnd,
@@ -62,26 +60,30 @@ function getWeekForDate(date: Date) {
   };
 }
 
-export function CalendarView({ horarios, getTipoColor, onView, filterMode }: CalendarViewProps) {
+export function CalendarView({ horarios, getTipoColor, onView, filterMode, onWeekChange }: CalendarViewProps) {
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   
   const currentWeek = getWeekForDate(currentDate);
-  
+
+  // ✅ Notificar al padre cada vez que cambia la semana visible (y al montar)
+  useEffect(() => {
+    onWeekChange?.(currentWeek.start, currentWeek.end);
+  }, [currentDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const hours = [
     "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", 
     "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", 
     "18:00", "19:00", "20:00","21:00", "22:00"
   ];
 
-  // Filtrar horarios que aplican para la semana actual - CON PARSEO SEGURO
+  // ✅ Usar parseLocalDate en lugar de parseDate para evitar el desfase UTC
   const horariosEnSemana = horarios.filter(h => {
-    const fechaInicio = parseDate(h.fecha_inicio);
-    const fechaFin = parseDate(h.fecha_fin);
+    const fechaInicio = parseLocalDate(h.fecha_inicio);
+    const fechaFin = parseLocalDate(h.fecha_fin);
     
-    // Si las fechas son inválidas, no mostrar el horario
     if (!fechaInicio || !fechaFin) {
       console.warn('⚠️ Horario con fechas inválidas:', {
         id: h.id,
@@ -92,7 +94,6 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
       return false;
     }
     
-    // Verificar que el horario esté vigente en la semana actual
     return fechaInicio <= currentWeek.end && fechaFin >= currentWeek.start;
   });
 
@@ -133,7 +134,6 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
     setCurrentDate(newDate);
   };
 
-  // Función mejorada para calcular posición
   const calculatePosition = (horario: any) => {
     const [startHour, startMinute] = horario.hora_inicio.split(":").map(Number);
     const [endHour, endMinute] = horario.hora_fin.split(":").map(Number);
@@ -185,11 +185,7 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
 
             {/* Navegación de semanas */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevWeek}
-              >
+              <Button variant="outline" size="sm" onClick={handlePrevWeek}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               
@@ -203,11 +199,7 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                 Hoy
               </Button>
               
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextWeek}
-              >
+              <Button variant="outline" size="sm" onClick={handleNextWeek}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -258,7 +250,7 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                   <div />
                   
                   {/* Columnas para cada día */}
-                  {diasSemana.map((dia, dayIndex) => (
+                  {diasSemana.map((dia) => (
                     <div key={dia} className="relative border-l pointer-events-auto">
                       {horariosEnSemana
                         .filter(h => h.dia_semana === dia)
@@ -282,14 +274,12 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                                 {/* ==================== MODO FICHA ==================== */}
                                 {filterMode === 'ficha' && (
                                   <>
-                                    {/* 1. APOYO - Si es tipo APOYO, mostrar con estilo destacado */}
                                     {horario.tipo === 'CLASE' && horario.apoyo && (
                                       <p className="text-[10px] font-bold text-[#2012eb] truncate leading-tight">
                                         📚 {horario.apoyo?.toUpperCase()}
                                       </p>
                                     )}
                                     
-                                    {/* 2. INSTRUCTOR - Siempre visible */}
                                     {horario.instructor_nombre && (
                                       <div className="flex items-center gap-0.5 text-[9px] text-gray-600">
                                         <Users className="h-2.5 w-2.5 flex-shrink-0" />
@@ -297,7 +287,6 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                                       </div>
                                     )}
                                     
-                                    {/* 3. AMBIENTE - Si hay espacio */}
                                     {height >= 45 && horario.ambiente_nombre && (
                                       <div className="flex items-center gap-0.5 text-[9px] text-gray-500">
                                         <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
@@ -305,21 +294,18 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                                       </div>
                                     )}
                                     
-                                    {/* 4. COMPETENCIA - Solo CLASE, si hay espacio */}
                                     {height >= 60 && horario.tipo === 'CLASE' && horario.competencia_nombre && (
                                       <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
                                         {horario.competencia_nombre}
                                       </p>
                                     )}
                                     
-                                    {/* 5. RESULTADO - Solo CLASE, si hay espacio */}
                                     {height >= 75 && horario.tipo === 'CLASE' && horario.resultado_nombre && horario.resultado_nombre !== 'N/A' && (
                                       <p className="text-[8px] text-gray-600 truncate">
                                         {horario.resultado_nombre}
                                       </p>
                                     )}
                                     
-                                    {/* 6. HORARIO - Al final, si hay espacio */}
                                     {height >= 90 && (
                                       <div className="flex items-center gap-0.5 text-[9px] text-gray-400 mt-auto">
                                         <Clock className="h-2.5 w-2.5 flex-shrink-0" />
@@ -332,19 +318,18 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                                 {/* ==================== MODO INSTRUCTOR ==================== */}
                                 {filterMode === 'instructor' && (
                                   <>
-                                  {(horario.tipo === 'CLASE' || horario.tipo === 'APOYO' || horario.tipo == 'RESERVA') && (
-  <p className="text-[10px] font-bold text-[#2012eb] truncate leading-tight">
-    {horario.tipo === 'CLASE' ? `📚 ${horario.apoyo?.toUpperCase()}` :  `📚 ${horario.tipo}`}
-  </p>
-)}
-                                    {/* 2. FICHA - Siempre visible si existe */}
+                                    {(horario.tipo === 'CLASE' || horario.tipo === 'APOYO' || horario.tipo === 'RESERVA') && (
+                                      <p className="text-[10px] font-bold text-[#2012eb] truncate leading-tight">
+                                        {horario.tipo === 'CLASE' ? `📚 ${horario.apoyo?.toUpperCase()}` : `📚 ${horario.tipo}`}
+                                      </p>
+                                    )}
+
                                     {horario.ficha_numero && (
                                       <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
                                         📋 Ficha {horario.ficha_numero}
                                       </p>
                                     )}
                                     
-                                    {/* 3. AMBIENTE - Si hay espacio */}
                                     {height >= 45 && horario.ambiente_nombre && (
                                       <div className="flex items-center gap-0.5 text-[9px] text-gray-500">
                                         <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
@@ -352,21 +337,18 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                                       </div>
                                     )}
                                     
-                                    {/* 4. COMPETENCIA - Solo CLASE, si hay espacio */}
                                     {height >= 60 && horario.tipo === 'CLASE' && horario.competencia_nombre && (
                                       <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
                                         {horario.competencia_nombre}
                                       </p>
                                     )}
                                     
-                                    {/* 5. RESULTADO - Solo CLASE, si hay espacio */}
                                     {height >= 75 && horario.tipo === 'CLASE' && horario.resultado_nombre && horario.resultado_nombre !== 'N/A' && (
                                       <p className="text-[8px] text-gray-600 truncate">
                                         {horario.resultado_nombre}
                                       </p>
                                     )}
                                     
-                                    {/* 6. HORARIO - Al final, si hay espacio */}
                                     {height >= 90 && (
                                       <div className="flex items-center gap-0.5 text-[9px] text-gray-400 mt-auto">
                                         <Clock className="h-2.5 w-2.5 flex-shrink-0" />
@@ -379,20 +361,17 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                                 {/* ==================== MODO AMBIENTE ==================== */}
                                 {filterMode === 'ambiente' && (
                                   <>
-                                    {/* 1. TIPO - Siempre visible con color según tipo */}
                                     <p className="text-[10px] font-semibold truncate leading-tight"
                                        style={{ color: getTipoColor(horario.tipo) }}>
                                       {horario.tipo}
                                     </p>
                                     
-                                    {/* 2. APOYO - Si es tipo APOYO, con estilo destacado */}
                                     {height >= 28 && horario.tipo === 'APOYO' && horario.apoyo && (
                                       <p className="text-[10px] font-bold text-[#2012eb] truncate leading-tight">
                                         📚 {horario.apoyo}
                                       </p>
                                     )}
                                     
-                                    {/* 3. INSTRUCTOR - Si hay espacio */}
                                     {height >= 43 && horario.instructor_nombre && (
                                       <div className="flex items-center gap-0.5 text-[9px] text-gray-600">
                                         <Users className="h-2.5 w-2.5 flex-shrink-0" />
@@ -400,28 +379,24 @@ export function CalendarView({ horarios, getTipoColor, onView, filterMode }: Cal
                                       </div>
                                     )}
                                     
-                                    {/* 4. FICHA - Si hay espacio */}
                                     {height >= 58 && horario.ficha_numero && (
                                       <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
                                         📋 Ficha {horario.ficha_numero}
                                       </p>
                                     )}
                                     
-                                    {/* 5. COMPETENCIA - Solo CLASE, si hay espacio */}
                                     {height >= 73 && horario.tipo === 'CLASE' && horario.competencia_nombre && (
                                       <p className="text-[10px] font-semibold text-[#00304D] truncate leading-tight">
                                         {horario.competencia_nombre}
                                       </p>
                                     )}
                                     
-                                    {/* 6. RESULTADO - Solo CLASE, si hay espacio */}
                                     {height >= 88 && horario.tipo === 'CLASE' && horario.resultado_nombre && horario.resultado_nombre !== 'N/A' && (
                                       <p className="text-[8px] text-gray-600 truncate">
                                         {horario.resultado_nombre}
                                       </p>
                                     )}
                                     
-                                    {/* 7. HORARIO - Al final, si hay espacio */}
                                     {height >= 103 && (
                                       <div className="flex items-center gap-0.5 text-[9px] text-gray-400 mt-auto">
                                         <Clock className="h-2.5 w-2.5 flex-shrink-0" />
