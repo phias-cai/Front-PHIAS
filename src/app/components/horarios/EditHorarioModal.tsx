@@ -64,7 +64,8 @@ export function EditHorarioModal({
   // El rol se obtiene internamente — no depende de la prop
   const [currentRole, setCurrentRole] = useState<string>("");
   const isAdmin       = currentRole === "admin";
-  const canDelete     = currentRole === "admin"; // solo admin puede borrar permanentemente
+  const canDelete     =   currentRole === "admin" || currentRole === "coordinador";
+   // solo admin puede borrar permanentemente
 
   // ── Estado general ────────────────────────────────────────
   const [loading,  setLoading]  = useState(false);
